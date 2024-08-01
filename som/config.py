@@ -1,0 +1,9 @@
+M, N = 20, 30
+INPUT_DIM = 3
+SEED = 13
+DECAY = 360 # good practice: decay about 90% of number of weights update
+BATCH_SIZE = 15
+EPOCHS_SIMPLE_BATCH = 200
+EPOCHS_PYTORCH_BATCH = 400
+LEARNING_RATE = 0.01
+EPOCHS_ONLINE = 100

@@ -1,32 +1,33 @@
-from typing import Sequence, Union, Tuple, Generator
+from typing import Sequence, Union, Tuple
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
 import numpy as np
-from torch.autograd import Variable
+import matplotlib.pyplot as plt
+import PIL
 from torchvision import datasets
 from inputdata import InputData
 from tqdm import tqdm
 import wandb
-import PIL
+ 
 
-class SOM(nn.Module):
+class STM(nn.Module):
 	"""
-	Self-Organizing Map with Gaussian Neighbourhood function.
+	Supervised-Topological Map with Gaussian Neighbourhood function and target function.
 	"""
-	def __init__(self, m: int , n: int, input_data: InputData, decay_rate: int, alpha=None, sigma=None):
+	def __init__(self, m: int , n: int, input_data: InputData, decay_rate: int, target_points: dict, alpha=None, sigma=None):
 		"""
-        Initialize the SOM.
+        Initialize the STM.
 
         Args:
             m (int): Number of rows in the SOM grid.
             n (int): Number of columns in the SOM grid.
             input_data (InputData): InputData object containing input dimensions.
             decay_rate (int): Decay rate for the learning rate.
+			target_points (dict): Key are labels and values are torch Tensor indicating a point in the grid.
             alpha (float, optional): Initial learning rate. Defaults to 0.3.
             sigma (float, optional): Initial radius of the neighbourhood function. Defaults to half the maximum of m or n.
         """
-		super(SOM, self).__init__()
+		super(STM, self).__init__()
 		
 		self.m = m
 		self.n = n
@@ -41,11 +42,12 @@ class SOM(nn.Module):
 			self.sigma = float(sigma)
 
 		self.decay = decay_rate
-		self.weights = torch.nn.Parameter(torch.rand(m*n, self.input_data.dim))
+		self.weights = torch.nn.Parameter(torch.randn(m*n, self.input_data.dim))
 		self.locations = torch.LongTensor(np.array(list(self.neuron_locations())))
+		self.target_points = target_points
 
 	def get_weights(self) -> torch.Tensor:
-		return self.weights.detach()
+		return self.weights
 
 	def get_locations(self) -> torch.LongTensor:
 		return self.locations
@@ -63,84 +65,8 @@ class SOM(nn.Module):
 			to_return.append(self.locations[min_index])
 
 		return to_return
-	
-	def train_online(self, training_set: datasets, epochs: int, wandb_log: bool = False):
-		"""
-        Train the SOM using online learning.
 
-        Args:
-            training_set (Dataset): Dataset for training.
-            epochs (int): Number of epochs to train for.
-        """
-		for it in range(epochs):
-			for i, el in tqdm(enumerate(training_set), f"epoch {it+1}", len(training_set)):
-				x=el[0]
-				# look for the best matching unit (BMU)
-				dists = torch.pairwise_distance(x, self.weights, p=2)
-				_, bmu_index = torch.min(dists, 0)
-				bmu_loc = self.locations[bmu_index,:]
-				bmu_loc = bmu_loc.squeeze()
-				
-				learning_rate_op = np.exp(-it/self.decay)
-				alpha_op = self.alpha * learning_rate_op
-				sigma_op = self.sigma * learning_rate_op
-
-				# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
-				bmu_distance_squares = torch.sum(torch.pow(self.locations.float() - torch.stack([bmu_loc for i in range(self.m*self.n)]).float(), 2), 1) # dim = som_dim = m*n
-				neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2)))
-				learning_rate_op = alpha_op * neighbourhood_func
-
-				learning_rate_multiplier = torch.stack([learning_rate_op[i:i+1]*np.ones(self.input_data.dim) for i in range(self.m*self.n)]) # dim = (m*n, input_dim)
-				delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.m*self.n)]) - self.weights))       # element-wise multiplication -> dim = (m*n, input_dim)
-				new_weights = torch.add(self.weights, delta)
-				self.weights = torch.nn.Parameter(new_weights)
-				if wandb_log:
-					image_grid=self.create_image_grid()
-					# Create a figure and axis with a specific size
-					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-					ax.axis("off")
-					ax.add_image(plt.imshow(image_grid))
-					fig.canvas.draw()
-					pil_image=PIL.Image.frombytes('RGB', 
-						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-					plt.close(fig)
-					wandb.log({"weights": wandb.Image(pil_image)})
-
-
-
-	def train_batch(self, dataset: datasets, batch_size: int, epochs: int, wandb_log: bool = False):
-		"""
-        Train the SOM using batch learning.
-
-        Args:
-            dataset (Dataset): Dataset for training.
-            batch_size (int): Size of each batch.
-            epochs (int): Number of epochs to train for.
-        """
-		data_loader = torch.utils.data.DataLoader(dataset,
-                                          batch_size=batch_size,
-                                          shuffle=True,)
-
-		for iter_no in tqdm(range(epochs), desc=f"Epoch"):
-			for batch in data_loader:
-				neighbourhood_func = self.neighbourhood_batch(batch[0], iter_no)
-				# update weights
-				new_weights = torch.matmul(neighbourhood_func.T, batch[0]) # (som_dim, batch_size)x(batch_size, input_dim) = (som_dim, input_dim)
-				norm = torch.sum(neighbourhood_func, 0) # som_dim
-				self.weights = torch.nn.Parameter(torch.div(new_weights.T, norm).T)
-			if wandb_log:
-				image_grid=self.create_image_grid()
-				# Create a figure and axis with a specific size
-				fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-				ax.axis("off")
-				ax.add_image(plt.imshow(image_grid))
-				fig.canvas.draw()
-				pil_image=PIL.Image.frombytes('RGB', 
-					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-				plt.close(fig)
-				wandb.log({"weights": wandb.Image(pil_image)})
-				
-	def train_batch_pytorch(self, dataset: datasets, batch_size: int, epochs: int, learning_rate: int = 0.1, wandb_log: bool = False):
+	def train_batch_pytorch(self, dataset: datasets, batch_size: int, epochs: int, learning_rate: int = 0.1, wandb_log: bool = False, clip_images: bool = False):
 		"""
 		Train the SOM using PyTorch's built-in optimizers and backpropagation.
 
@@ -158,8 +84,10 @@ class SOM(nn.Module):
 		for iter_no in tqdm(range(epochs), desc=f"Epochs", leave=True, position=0):
 			for b, batch in enumerate(data_loader):
 				neighbourhood_func = self.neighbourhood_batch(batch[0], iter_no)
+				target_dist = self.target_distance_batch(batch, iter_no)
+				weight_function = torch.mul(neighbourhood_func, target_dist)
 				distance_matrix = torch.cdist(batch[0], self.weights, p=2) # dim = (batch_size, som_dim) 
-				loss = torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func,distance_matrix)))
+				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,distance_matrix)))
 
 				loss.backward()
 				optimizer.step()
@@ -171,6 +99,9 @@ class SOM(nn.Module):
 					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
 					ax.axis("off")
 					ax.add_image(plt.imshow(image_grid))
+					for key, value in self.target_points.items():
+						plt.text(value[1], value[0], str(key), ha='center', va='center',
+             				bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=4)
 					fig.canvas.draw()
 					pil_image=PIL.Image.frombytes('RGB', 
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
@@ -199,11 +130,24 @@ class SOM(nn.Module):
 		learning_rate_op = np.exp(-it/self.decay)
 		sigma_op = self.sigma * learning_rate_op
 
-		# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
 		bmu_distances = self.locations.float() - bmu_loc.unsqueeze(1) # (batch_size, som_dim, 2)
 		bmu_distance_squares = torch.sum(torch.pow(bmu_distances, 2), 2) # (batch_size, som_dim)
 		neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2))) # (batch_size, som_dim)
+
 		return neighbourhood_func
+
+	def target_distance_batch(self, batch: torch.Tensor, it: int) -> torch.Tensor:
+
+		target_loc=torch.stack([self.target_points[np.int32(batch[1])[i]] for i in range(batch[1].shape[0])]) # (batch_size, 2) 
+		
+		learning_rate_op = np.exp(-it/self.decay)
+		sigma_op = self.sigma * learning_rate_op
+
+		target_distances = self.locations.float() - target_loc.unsqueeze(1) # (batch_size, som_dim, 2)
+		target_distances_squares = torch.sum(torch.pow(target_distances, 2), 2) # (batch_size, som_dim)
+		target_dist_func = torch.exp(torch.neg(torch.div(target_distances_squares, sigma_op**2))) # (batch_size, som_dim)
+
+		return target_dist_func
 
 	def create_image_grid(self) -> np.ndarray:
 		"""
@@ -221,6 +165,7 @@ class SOM(nn.Module):
 		if self.input_data.type=="int":
 			for i, loc in enumerate(locations):
 				image_grid[loc[0]].append(weights[i].detach().numpy())
+			
 			return np.array(image_grid)
 		else:
 			# rearrange weight in a matrix called image_grid

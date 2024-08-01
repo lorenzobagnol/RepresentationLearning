@@ -1,3 +1,4 @@
 rep_env/
 MNIST/
 __pycache__/
+*wandb/

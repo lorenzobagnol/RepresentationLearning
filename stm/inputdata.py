@@ -1,10 +1,10 @@
 import numpy as np
-from typing import Sequence, Union, Tuple
+from typing import Sequence, Union, Tuple, Literal
 import torch
 
 class InputData():
 
-	def __init__(self, shape: Union[int, Tuple[int, int]], channels: int = None, channel_range: str = None) -> None:
+	def __init__(self, shape: Union[int, Tuple[int, int]], channels: int = None, channel_range: Literal['Unit', 'RGB'] = 'Unit') -> None:
 		
 		assert (isinstance(shape, int) or (isinstance(shape, tuple) and len(shape)==2)), "input dim should be and integer or a tuple"
 		
