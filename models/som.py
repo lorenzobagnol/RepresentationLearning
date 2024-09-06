@@ -15,7 +15,7 @@ class SOM(BaseSOM):
 	"""
 	Self-Organizing Map with Gaussian Neighbourhood function.
 	"""
-	def __init__(self, m: int , n: int, input_data: InputData, alpha=None, sigma=None):
+	def __init__(self, m: int , n: int, input_data: InputData, sigma=None):
 		"""
         Initialize the SOM.
 
@@ -23,23 +23,25 @@ class SOM(BaseSOM):
             m (int): Number of rows in the SOM grid.
             n (int): Number of columns in the SOM grid.
             input_data (InputData): InputData object containing input dimensions.
-            alpha (float, optional): Initial learning rate. Defaults to 0.3.
             sigma (float, optional): Initial radius of the neighbourhood function. Defaults to half the maximum of m or n.
         """
-		super().__init__(m = m, n = n, input_data = input_data, alpha = alpha, sigma = sigma)
+		super().__init__(m = m, n = n, input_data = input_data, sigma = sigma)
 	
-	def train_online(self, training_set: datasets, epochs: int, decay_rate: int, wandb_log: bool = False):
+	def train_online(self, training_set: datasets, epochs: int, decay_rate: float, alpha: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
         Train the SOM using online learning.
 
         Args:
             training_set (Dataset): Dataset for training.
             epochs (int): Number of epochs to train for.
-			decay_rate (int): Decay rate for the learning rate.
-
+			decay_rate (float): Decay rate for the learning rate.
+			alpha (float, optional): Initial learning rate.
         """
 		print("\nSOM online-training is starting with hyper-parameters:")
-		print("epochs = "+str(epochs)+"\n\n")
+		print("\u2022 epochs = "+str(epochs))
+		print("\u2022 alpha = "+str(alpha))
+		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n")
+		
 		for it in range(epochs):
 			for i, el in tqdm(enumerate(training_set), f"epoch {it+1}", len(training_set)):
 				x=el[0]
@@ -50,7 +52,7 @@ class SOM(BaseSOM):
 				bmu_loc = bmu_loc.squeeze()
 				
 				learning_rate_op = np.exp(-it/decay_rate)
-				alpha_op = self.alpha * learning_rate_op
+				alpha_op = alpha * learning_rate_op
 				sigma_op = self.sigma * learning_rate_op
 
 				# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
@@ -63,7 +65,7 @@ class SOM(BaseSOM):
 				new_weights = torch.add(self.weights, delta)
 				self.weights = torch.nn.Parameter(new_weights)
 				if wandb_log:
-					image_grid=self.create_image_grid()
+					image_grid=self.create_image_grid(clip_images)
 					# Create a figure and axis with a specific size
 					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
 					ax.axis("off")
@@ -73,8 +75,11 @@ class SOM(BaseSOM):
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 					plt.close(fig)
 					wandb.log({"weights": wandb.Image(pil_image)})
+		if wandb.run is not None:
+			wandb.finish()
+		return
 
-	def train_batch(self, dataset: datasets, batch_size: int, epochs: int, decay_rate: int, wandb_log: bool = False):
+	def train_batch(self, dataset: datasets, batch_size: int, epochs: int, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
         Train the SOM using batch learning.
 
@@ -82,11 +87,12 @@ class SOM(BaseSOM):
             dataset (Dataset): Dataset for training.
             batch_size (int): Size of each batch.
             epochs (int): Number of epochs to train for.
-			decay_rate (int): Decay rate for the learning rate.
+			decay_rate (float): Decay rate for the learning rate.
         """
 		print("\nSOM training with batch mode without pytorch optimizations is starting with hyper-parameters:")
 		print("\u2022 batch size = "+str(batch_size))
 		print("\u2022 epochs = "+str(epochs)+"\n\n")
+		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n")
 
 		print("Creating a DataLoader object from dataset", end=" ",flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset,
@@ -112,8 +118,11 @@ class SOM(BaseSOM):
 					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 				plt.close(fig)
 				wandb.log({"weights": wandb.Image(pil_image)})
+		if wandb.run is not None:
+			wandb.finish()
+		return
 				
-	def train_batch_pytorch(self, dataset: datasets, batch_size: int, epochs: int, learning_rate: float, decay_rate: int, wandb_log: bool = False):
+	def train_batch_pytorch(self, dataset: datasets, batch_size: int, epochs: int, learning_rate: float, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
 		Train the SOM using PyTorch's built-in optimizers and backpropagation.
 
@@ -122,11 +131,12 @@ class SOM(BaseSOM):
             batch_size (int): Size of each batch.
             epochs (int): Number of epochs to train for.
             learning_rate (float): Learning rate for the optimizer.
-			decay_rate (int): Decay rate for the learning rate.
+			decay_rate (float): Decay rate for the learning rate.
         """
 		print("\nSTM training with batch mode and pytorch optimizations is starting with hyper-parameters:")
 		print("\u2022 batch size = "+str(batch_size))
 		print("\u2022 epochs = "+str(epochs))
+		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n")
 		print("\u2022 learning rate = "+str(learning_rate)+"\n\n")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
@@ -161,24 +171,6 @@ class SOM(BaseSOM):
 						"weights": wandb.Image(pil_image),
 						"loss" : loss.item()
 					})
-
-		"""
-		Create an image grid from the trained SOM weights.
-		
-		Args:
-			som (SOM): The trained Self-Organizing Map.
-		
-		Returns:
-			numpy array: heigh*width*channels array representing the image grid.
-		"""
-		image_grid = [[] for _ in range(self.m)]
-		weights = self.get_weights()
-		locations = self.get_locations()
-		if self.input_data.type=="int":
-			for i, loc in enumerate(locations):
-				image_grid[loc[0]].append(weights[i].detach().numpy())
-			return np.array(image_grid)
-		else:
-			# rearrange weight in a matrix called image_grid
-			image_grid=torch.cat([torch.cat([self.input_data.inverse_transform_data(weights[i].detach()) for i in range(self.n)], 0) for j in range(self.m)], 1)
-			return np.array(image_grid)
+		if wandb.run is not None:
+			wandb.finish()
+		return

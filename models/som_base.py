@@ -16,7 +16,7 @@ class BaseSOM(nn.Module, ABC):
 	"""
 	Base class of Self-Organizing Map.
 	"""
-	def __init__(self, m: int , n: int, input_data: InputData, alpha=None, sigma=None):
+	def __init__(self, m: int , n: int, input_data: InputData, sigma=None):
 		"""
         Initialize the base class for the SOM network.
 
@@ -24,7 +24,6 @@ class BaseSOM(nn.Module, ABC):
             m (int): Number of rows in the SOM grid.
             n (int): Number of columns in the SOM grid.
             input_data (InputData): InputData object containing input dimensions.
-            alpha (float, optional): Initial learning rate. Defaults to 0.3.
             sigma (float, optional): Initial radius of the neighbourhood function. Defaults to half the maximum of m or n.
         """
 		super().__init__()
@@ -32,10 +31,6 @@ class BaseSOM(nn.Module, ABC):
 		self.m = m
 		self.n = n
 		self.input_data = input_data
-		if alpha is None:
-			self.alpha = 0.3
-		else:
-			self.alpha = float(alpha)
 		if sigma is None:
 			self.sigma = max(m, n) / 2.0
 		else:
@@ -89,7 +84,7 @@ class BaseSOM(nn.Module, ABC):
 		neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2))) # (batch_size, som_dim)
 		return neighbourhood_func
 
-	def create_image_grid(self) -> np.ndarray:
+	def create_image_grid(self, clip_image: bool = None) -> np.ndarray:
 		"""
 		Create an image grid from the trained SOM weights.
 		
@@ -105,8 +100,12 @@ class BaseSOM(nn.Module, ABC):
 		if self.input_data.type=="int":
 			for i, loc in enumerate(locations):
 				image_grid[loc[0]].append(weights[i].detach().numpy())
-			return np.array(image_grid)
 		else:
 			# rearrange weight in a matrix called image_grid
 			image_grid=torch.cat([torch.cat([self.input_data.inverse_transform_data(weights[i].detach()) for i in range(self.n)], 0) for j in range(self.m)], 1)
-			return np.array(image_grid)
+		if clip_image:
+			if self.input_data.channel_range=="RGB":
+				return np.clip(image_grid, 0, 1)
+			else:
+				return np.int64(np.clip(image_grid, 0, 255))
+		return np.array(image_grid)
