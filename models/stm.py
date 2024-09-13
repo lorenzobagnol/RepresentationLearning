@@ -1,7 +1,8 @@
-from typing import Sequence, Union, Tuple
+import io
 import torch
 import torch.nn as nn
 import numpy as np
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import PIL
 from torchvision import datasets
@@ -69,13 +70,7 @@ class STM(BaseSOM):
 
 				if wandb_log:
 					image_grid=self.create_image_grid(clip_images)
-					# Create a figure and axis with a specific size
-					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-					ax.axis("off")
-					ax.add_image(plt.imshow(image_grid))
-					for key, value in self.target_points.items():
-						plt.text(value[1], value[0], str(key), ha='center', va='center',
-             				bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=4)
+					fig=self.resize_image_add_target_points(image_grid)
 					fig.canvas.draw()
 					pil_image=PIL.Image.frombytes('RGB', 
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
@@ -101,7 +96,7 @@ class STM(BaseSOM):
             learning_rate (float): Learning rate for the optimizer.
 			decay_rate (float): Decay rate for the learning rate.
         """
-		print("\nSTM training with batch mode and pytorch optimizations is starting with hyper-parameters:")
+		print("\nSTM LifeLong learning with batch mode and pytorch optimizations is starting with hyper-parameters:")
 		print("\u2022 batch size = "+str(batch_size))
 		print("\u2022 subset_size = "+str(subset_size))
 		print("\u2022 epochs_per_subset = "+str(epochs_per_subset))
@@ -124,6 +119,8 @@ class STM(BaseSOM):
 		rep = math.ceil(len(labels)/subset_size)
 		#counter = {lab : 0 for lab in labels}
 		for i in range(rep):
+			# if i==1:
+			# 	self.sigma=7
 			print("Training on labels in range "+str(i*subset_size) +"<"+str((i+1)*subset_size))
 			if disjoint_training:
 				indices = torch.where((dataset.targets>=i*subset_size) & (dataset.targets<(i+1)*subset_size))[0].tolist()
@@ -138,7 +135,8 @@ class STM(BaseSOM):
 			optimizer = torch.optim.Adam(self.parameters(), lr = learning_rate)
 			for iter_no in tqdm(range(epochs_per_subset), desc=f"Epochs", leave=True, position=0):
 				for b, batch in enumerate(data_loader):
-					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no)
+					
+					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no) #TODO: decay decrease as ?
 					target_dist = self._target_distance_batch(batch, decay_rate, iter_no)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = torch.cdist(batch[0], self.weights, p=2) # dim = (batch_size, som_dim) 
@@ -150,28 +148,18 @@ class STM(BaseSOM):
 
 					# self._update_counter(counter) come tengo conto delle posizioni dove la rete ha già imparato usando solo il counter?
 
-					if wandb_log:
-						image_grid=self.create_image_grid(clip_images)
-						dists = torch.cdist(batch[0], self.weights, p=2) # (batch_size, som_dim)
-						_, bmu_indices = torch.min(dists, 1)
-						# Create a figure and axis with a specific size
-						fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-						ax.axis("off")
-						ax.add_image(plt.imshow(image_grid))
-						for key, value in self.target_points.items():
-							plt.text(value[1], value[0], str(key), ha='center', va='center',
-								bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=4)
-						#TODO: delete BMU plot
-						plt.text(math.floor(bmu_indices/self.m), (bmu_indices%self.m), "BMU", ha='center', va='center',
-             			bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=11)
-						fig.canvas.draw()
-						pil_image=PIL.Image.frombytes('RGB', 
-							fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-						plt.close(fig)
-						wandb.log({	
-							"weights": wandb.Image(pil_image),
-							"loss" : loss.item()
-						})
+			self.sigma=max((self.sigma*0.5),max(self.m,self.n)/10) #TODO: sigma decrease each time a new subset is presented
+			image_grid=self.create_image_grid(clip_images)
+			np.save('array.npy', image_grid)
+			if wandb_log:
+				image_grid=self.create_image_grid(clip_images)
+				fig=self.resize_image_add_target_points(image_grid)
+				fig.savefig('temp_image.png', format='png', bbox_inches='tight', pad_inches=0.1)
+				wandb.log({	
+						"weights": wandb.Image('temp_image.png'),
+						"loss" : loss.item()
+					})
+				plt.close(fig)
 		if wandb.run is not None:
 			wandb.finish()
 		return
@@ -191,6 +179,8 @@ class STM(BaseSOM):
 		
 		learning_rate_op = np.exp(-it/decay_rate)
 		sigma_op = self.sigma * learning_rate_op
+		#sigma_op= max(self.m,self.n)/5 #TODO: move Hyperparameter outside the function
+		sigma_op = sigma_op * learning_rate_op
 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1) # (batch_size, som_dim, 2)
 		target_distances_squares = torch.sum(torch.pow(target_distances, 2), 2) # (batch_size, som_dim)
@@ -198,6 +188,30 @@ class STM(BaseSOM):
 
 		return target_dist_func
 
-	def _update_counter(self, dictionary: dict, increment_list: list):
-		for el in increment_list:
-			dictionary[el]+=1
+
+	def resize_image_add_target_points(self, image_grid: np.ndarray) -> Figure:
+		target_width = 800  
+		target_height = 800  
+		dpi_value = min(300, max(72, target_width / image_grid.shape[1]))
+		figsize_x = target_width / dpi_value
+		figsize_y = target_height / dpi_value
+		fig, ax = plt.subplots(figsize=(figsize_x, figsize_y), dpi=dpi_value)
+		base_font_size = 24  
+		font_size = base_font_size * (dpi_value / 100)  
+		if self.input_data.type=="int":
+			for key, value in self.target_points.items():
+				ax.text(value[0], value[1], str(key), ha='center', va='center',
+					bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=font_size)
+		else:
+			for key, value in self.target_points.items():
+				ax.text(value[0]*self.input_data.dim1, value[1]*self.input_data.dim2, str(key), ha='center', va='center',
+					bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=font_size)
+		ax.imshow(image_grid)
+		ax.axis("off")
+
+		return fig
+
+
+
+
+#TODO: we are using sigma, not sigma^2

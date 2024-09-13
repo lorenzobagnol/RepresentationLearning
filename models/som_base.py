@@ -16,7 +16,7 @@ class BaseSOM(nn.Module, ABC):
 	"""
 	Base class of Self-Organizing Map.
 	"""
-	def __init__(self, m: int , n: int, input_data: InputData, sigma=None):
+	def __init__(self, m: int , n: int, input_data: InputData, sigma: float = None):
 		"""
         Initialize the base class for the SOM network.
 
@@ -36,7 +36,8 @@ class BaseSOM(nn.Module, ABC):
 		else:
 			self.sigma = float(sigma)
 
-		self.weights = torch.nn.Parameter(torch.rand(m*n, self.input_data.dim))
+		w=torch.rand(m*n, self.input_data.dim)
+		self.weights = torch.nn.Parameter(torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO Glorot initialization
 		self.locations = torch.LongTensor(np.array(list(self.neuron_locations())))
 
 	def get_weights(self) -> torch.Tensor:
@@ -94,18 +95,17 @@ class BaseSOM(nn.Module, ABC):
 		Returns:
 			numpy array: heigh*width*channels array representing the image grid.
 		"""
-		image_grid = [[] for _ in range(self.m)]
 		weights = self.get_weights()
-		locations = self.get_locations()
 		if self.input_data.type=="int":
+			image_grid = [[] for _ in range(self.n)]
+			locations = self.get_locations()
 			for i, loc in enumerate(locations):
-				image_grid[loc[0]].append(weights[i].detach().numpy())
+				image_grid[loc[1]].append(weights[i].detach().numpy())
 		else:
 			# rearrange weight in a matrix called image_grid
-			image_grid=torch.cat([torch.cat([self.input_data.inverse_transform_data(weights[i].detach()) for i in range(self.n)], 0) for j in range(self.m)], 1)
+			image_grid=torch.cat([torch.cat([self.input_data.inverse_transform_data(weights[i+(j*self.n)]) for i in range(self.n)], 0) for j in range(self.m)], 1)
+		
 		if clip_image:
-			if self.input_data.channel_range=="RGB":
-				return np.clip(image_grid, 0, 1)
-			else:
-				return np.int64(np.clip(image_grid, 0, 255))
+			return np.clip(image_grid, 0, 1)
+				
 		return np.array(image_grid)

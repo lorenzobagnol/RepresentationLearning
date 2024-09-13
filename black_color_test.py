@@ -8,19 +8,19 @@ from utils.runner import BaseRunner
 
 class Config():
 	"""Configuration class for setting constants."""
-	M, N = 30, 15
+	M, N = 50, 50
 	INPUT_DIM = 3
 	SEED = 13
 	DECAY = 120
-	SIGMA = 3
+	SIGMA = 20
 	BATCH_SIZE = 15
 	EPOCHS_ONLINE = 100
 	EPOCHS_SIMPLE_BATCH = 200
 	EPOCHS_PYTORCH_BATCH = 400
-	LLL_EPOCHS_PER_SUBSET = 60
+	LLL_EPOCHS_PER_SUBSET = 40
 	LLL_SUBSET_SIZE = 1
 	LLL_DISJOINT = True
-	LEARNING_RATE = 0.1
+	LEARNING_RATE = 0.01
 
 config_dict={key: value for key, value in Config.__dict__.items() if not key.startswith('_')}
 
@@ -36,45 +36,22 @@ class colorsRunner(BaseRunner):
 		Returns:
 			tuple: A tuple containing the TensorDataset and a list of color names.
 		"""
-		colors =  torch.Tensor([
-			[0,0,0],
-			[1,0,0],
-			[0,1,0],
-			[0,0,1],
-			[1,1,0],
-			[1,0,1],
-			[0,1,1],
-			[1,1,1]
+		colors = np.array([
+			[0., 0., 0.],
 		])
-		color_names =[
-			"Black",   
-			"Red",     
-			"Green",   
-			"Blue",    
-			"Yellow",  
-			"Magenta", 
-			"Cyan",    
-			"White"    
+		color_names = [
+			'black'
 		]
-		samples=list()
-		targets=list()
-		for i, color in enumerate(colors):
-			for _ in range(5):
-				# Create a sample by substituting 1 with N(0.9, 1.0) and 0 with N(0.0, 0.1)
-				sample = torch.where(color == 1, torch.rand(color.size()) * 0.1 + 0.9, torch.rand(color.size()) * 0.1)
-				samples.append(sample)
-				targets.append(i)
-				
-		train_dataset = TensorDataset(torch.stack(samples), torch.Tensor(targets))
-		train_dataset.targets = torch.Tensor(targets)
-
-		target_points={i: torch.Tensor([random.randint(0, self.config.M-1), random.randint(0, self.config.N-1)]) for i in range(len(color_names))}
+		train_dataset = TensorDataset(torch.Tensor(colors), torch.Tensor([i for i in range(len(color_names))]))
+		train_dataset.targets = torch.IntTensor([i for i in range(15)])
+		#TODO: change in randint(0, config.M-1)
+		target_points={i: torch.Tensor([random.randint(0, Config.M), random.randint(0, Config.N)]) for i in range(len(color_names))}
 		val_dataset=train_dataset
 		return train_dataset, val_dataset, target_points
 
 
 config=Config
 random.seed(config.SEED)
-input_data=InputData(0,3,"RGB")
+input_data=InputData(3,3,"RGB")
 color_runner=colorsRunner(config=config, dataset_name="colors", input_data=input_data)
 color_runner.run()
