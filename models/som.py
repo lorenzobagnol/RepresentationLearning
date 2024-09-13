@@ -17,26 +17,26 @@ class SOM(BaseSOM):
 	"""
 	def __init__(self, m: int , n: int, input_data: InputData, sigma=None):
 		"""
-        Initialize the SOM.
+		Initialize the SOM.
 
-        Args:
-            m (int): Number of rows in the SOM grid.
-            n (int): Number of columns in the SOM grid.
-            input_data (InputData): InputData object containing input dimensions.
-            sigma (float, optional): Initial radius of the neighbourhood function. Defaults to half the maximum of m or n.
-        """
+		Args:
+			m (int): Number of rows in the SOM grid.
+			n (int): Number of columns in the SOM grid.
+			input_data (InputData): InputData object containing input dimensions.
+			sigma (float, optional): Initial radius of the neighbourhood function. Defaults to half the maximum of m or n.
+		"""
 		super().__init__(m = m, n = n, input_data = input_data, sigma = sigma)
 	
 	def train_online(self, training_set: datasets, epochs: int, decay_rate: float, alpha: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
-        Train the SOM using online learning.
+		Train the SOM using online learning.
 
-        Args:
-            training_set (Dataset): Dataset for training.
-            epochs (int): Number of epochs to train for.
+		Args:
+			training_set (Dataset): Dataset for training.
+			epochs (int): Number of epochs to train for.
 			decay_rate (float): Decay rate for the learning rate.
 			alpha (float, optional): Initial learning rate.
-        """
+		"""
 		print("\nSOM online-training is starting with hyper-parameters:")
 		print("\u2022 epochs = "+str(epochs))
 		print("\u2022 alpha = "+str(alpha))
@@ -66,11 +66,7 @@ class SOM(BaseSOM):
 				self.weights = torch.nn.Parameter(new_weights)
 				if wandb_log:
 					image_grid=self.create_image_grid(clip_images)
-					# Create a figure and axis with a specific size
-					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-					ax.axis("off")
-					ax.add_image(plt.imshow(image_grid))
-					fig.canvas.draw()
+					fig=self.resize_image(image_grid)
 					pil_image=PIL.Image.frombytes('RGB', 
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 					plt.close(fig)
@@ -81,23 +77,23 @@ class SOM(BaseSOM):
 
 	def train_batch(self, dataset: datasets, batch_size: int, epochs: int, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
-        Train the SOM using batch learning.
+		Train the SOM using batch learning.
 
-        Args:
-            dataset (Dataset): Dataset for training.
-            batch_size (int): Size of each batch.
-            epochs (int): Number of epochs to train for.
+		Args:
+			dataset (Dataset): Dataset for training.
+			batch_size (int): Size of each batch.
+			epochs (int): Number of epochs to train for.
 			decay_rate (float): Decay rate for the learning rate.
-        """
+		"""
 		print("\nSOM training with batch mode without pytorch optimizations is starting with hyper-parameters:")
 		print("\u2022 batch size = "+str(batch_size))
-		print("\u2022 epochs = "+str(epochs)+"\n\n")
+		print("\u2022 epochs = "+str(epochs))
 		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n")
 
 		print("Creating a DataLoader object from dataset", end=" ",flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset,
-                                          batch_size=batch_size,
-                                          shuffle=True,)
+										  batch_size=batch_size,
+										  shuffle=True,)
 		print("\u2713 \n",flush=True)
 
 		for iter_no in tqdm(range(epochs), desc=f"Epoch"):
@@ -108,12 +104,8 @@ class SOM(BaseSOM):
 				norm = torch.sum(neighbourhood_func, 0) # som_dim
 				self.weights = torch.nn.Parameter(torch.div(new_weights.T, norm).T)
 			if wandb_log:
-				image_grid=self.create_image_grid()
-				# Create a figure and axis with a specific size
-				fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-				ax.axis("off")
-				ax.add_image(plt.imshow(image_grid))
-				fig.canvas.draw()
+				image_grid=self.create_image_grid(clip_images)
+				fig=self.resize_image(image_grid)
 				pil_image=PIL.Image.frombytes('RGB', 
 					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 				plt.close(fig)
@@ -126,23 +118,23 @@ class SOM(BaseSOM):
 		"""
 		Train the SOM using PyTorch's built-in optimizers and backpropagation.
 
-        Args:
-            dataset (Dataset): Dataset for training.
-            batch_size (int): Size of each batch.
-            epochs (int): Number of epochs to train for.
-            learning_rate (float): Learning rate for the optimizer.
+		Args:
+			dataset (Dataset): Dataset for training.
+			batch_size (int): Size of each batch.
+			epochs (int): Number of epochs to train for.
+			learning_rate (float): Learning rate for the optimizer.
 			decay_rate (float): Decay rate for the learning rate.
-        """
-		print("\nSTM training with batch mode and pytorch optimizations is starting with hyper-parameters:")
+		"""
+		print("\nSOM training with batch mode and pytorch optimizations is starting with hyper-parameters:")
 		print("\u2022 batch size = "+str(batch_size))
 		print("\u2022 epochs = "+str(epochs))
-		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n")
+		print("\u2022 decay_rate = "+str(decay_rate))
 		print("\u2022 learning rate = "+str(learning_rate)+"\n\n")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset,
-                                          batch_size=batch_size,
-                                          shuffle=True,)
+										  batch_size=batch_size,
+										  shuffle=True,)
 		print("\u2713 \n", flush=True)
 
 		self.train()
@@ -151,19 +143,17 @@ class SOM(BaseSOM):
 			for b, batch in enumerate(data_loader):
 				neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no)
 				distance_matrix = torch.cdist(batch[0], self.weights, p=2) # dim = (batch_size, som_dim) 
-				loss = torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func,distance_matrix)))
-
+				loss = torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func,distance_matrix))) 
+				
+				# for param in self.parameters():
+				# 	param.grad = None # inutile
 				loss.backward()
 				optimizer.step()
 				optimizer.zero_grad()
 
 				if wandb_log:
-					image_grid=self.create_image_grid()
-					# Create a figure and axis with a specific size
-					fig, ax = plt.subplots(figsize=(image_grid.shape[1] / 10, image_grid.shape[0] / 10), dpi=500)
-					ax.axis("off")
-					ax.add_image(plt.imshow(image_grid))
-					fig.canvas.draw()
+					image_grid=self.create_image_grid(clip_images)
+					fig=self.resize_image(image_grid)
 					pil_image=PIL.Image.frombytes('RGB', 
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 					plt.close(fig)
@@ -174,3 +164,15 @@ class SOM(BaseSOM):
 		if wandb.run is not None:
 			wandb.finish()
 		return
+	
+	def resize_image(self, image_grid):
+		target_width = 800  
+		target_height = 800  
+		dpi_value = min(300, max(72, target_width / image_grid.shape[1]))
+		figsize_x = target_width / dpi_value
+		figsize_y = target_height / dpi_value
+		fig, ax = plt.subplots(figsize=(figsize_x, figsize_y), dpi=dpi_value)
+		ax.imshow(image_grid)
+		ax.axis("off")
+
+		return fig
