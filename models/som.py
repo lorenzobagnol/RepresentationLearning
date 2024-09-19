@@ -67,6 +67,7 @@ class SOM(BaseSOM):
 				if wandb_log:
 					image_grid=self.create_image_grid(clip_images)
 					fig=self.resize_image(image_grid)
+					fig.canvas.draw()
 					pil_image=PIL.Image.frombytes('RGB', 
 						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 					plt.close(fig)
@@ -106,6 +107,7 @@ class SOM(BaseSOM):
 			if wandb_log:
 				image_grid=self.create_image_grid(clip_images)
 				fig=self.resize_image(image_grid)
+				fig.canvas.draw()
 				pil_image=PIL.Image.frombytes('RGB', 
 					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
 				plt.close(fig)
@@ -142,8 +144,9 @@ class SOM(BaseSOM):
 		for iter_no in tqdm(range(epochs), desc=f"Epochs", leave=True, position=0):
 			for b, batch in enumerate(data_loader):
 				neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no)
-				distance_matrix = torch.cdist(batch[0], self.weights, p=2) # dim = (batch_size, som_dim) 
-				loss = torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func,distance_matrix))) 
+				distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
+				norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim)
+				loss = torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func,norm_distance_matrix))) 
 				
 				# for param in self.parameters():
 				# 	param.grad = None # inutile
@@ -151,16 +154,17 @@ class SOM(BaseSOM):
 				optimizer.step()
 				optimizer.zero_grad()
 
-				if wandb_log:
-					image_grid=self.create_image_grid(clip_images)
-					fig=self.resize_image(image_grid)
-					pil_image=PIL.Image.frombytes('RGB', 
-						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-					plt.close(fig)
-					wandb.log({	
-						"weights": wandb.Image(pil_image),
-						"loss" : loss.item()
-					})
+			if wandb_log:
+				image_grid=self.create_image_grid(clip_images)
+				fig=self.resize_image(image_grid)
+				fig.canvas.draw()
+				pil_image=PIL.Image.frombytes('RGB', 
+					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
+				plt.close(fig)
+				wandb.log({	
+					"weights": wandb.Image(pil_image),
+					"loss" : loss.item()
+				})
 		if wandb.run is not None:
 			wandb.finish()
 		return

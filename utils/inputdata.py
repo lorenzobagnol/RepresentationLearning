@@ -20,17 +20,17 @@ class InputData():
 
 
 	def transform_data(self, x: torch.Tensor) -> torch.FloatTensor:
-		# if self.channel_range=="Unit":
-		# 	x /= 255.0
+		if self.channel_range=="Unit":
+			x /= 255.0
 		if self.type=="int":
-			return x.to(torch.float32)
-		return x.reshape(self.dim).to(torch.float32)
+			return x
+		return x.reshape(self.dim)
 	
 	def inverse_transform_data(self, x: torch.Tensor) -> torch.FloatTensor:
 		if self.channels==1:
-			return x.reshape(self.dim1, self.dim2).to(torch.float32)
+			return x.reshape(self.dim1, self.dim2)
 		if self.channels==3:
-			return x.reshape(self.dim1, self.dim2, self.channels).to(torch.float32)
+			return x.reshape(self.dim1, self.dim2, self.channels)
 	
 	def transform_dataset(self, dataset: Sequence[torch.Tensor]) -> Sequence[torch.Tensor]:
 		transformed_data=[]

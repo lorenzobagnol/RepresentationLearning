@@ -10,19 +10,19 @@ from utils.runner import BaseRunner
 
 class Config():
 	"""Configuration class for setting constants."""
-	M, N = 30, 20
+	M, N = 10, 10
 	INPUT_DIM = (28,28)
 	SEED = 13
 	DECAY = 90 # good practice: decay about 90% of number of weights update
-	SIGMA = 10
+	SIGMA = 3
 	BATCH_SIZE = 15
 	EPOCHS_ONLINE = 1
 	EPOCHS_SIMPLE_BATCH = 20
-	EPOCHS_PYTORCH_BATCH = 1
-	LLL_EPOCHS_PER_SUBSET = 1
+	EPOCHS_PYTORCH_BATCH = 40
+	LLL_EPOCHS_PER_SUBSET = 10
 	LLL_SUBSET_SIZE = 1
 	LLL_DISJOINT = True
-	LEARNING_RATE = 0.1
+	LEARNING_RATE = 0.0001
 
 config_dict={key: value for key, value in Config.__dict__.items() if not key.startswith('_')}
 
@@ -48,9 +48,9 @@ class MnistRunner(BaseRunner):
 			download=True,
 			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
 		)
-		target_points={i: torch.Tensor([random.randint(0, self.config.M-1), random.randint(0, self.config.N-1)]) for i in range(10)}
 		MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(1000)])
 		MNIST_train_subset.targets=MNIST_train.targets[0:1000]
+		target_points=self.generate_equally_distributed_points(10)
 		return MNIST_train_subset, MNIST_val, target_points
 
 

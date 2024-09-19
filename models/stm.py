@@ -68,17 +68,17 @@ class STM(BaseSOM):
 				optimizer.step()
 				optimizer.zero_grad()
 
-				if wandb_log:
-					image_grid=self.create_image_grid(clip_images)
-					fig=self.resize_image_add_target_points(image_grid)
-					fig.canvas.draw()
-					pil_image=PIL.Image.frombytes('RGB', 
-						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-					plt.close(fig)
-					wandb.log({	
-						"weights": wandb.Image(pil_image),
-						"loss" : loss.item()
-					})
+			if wandb_log:
+				image_grid=self.create_image_grid(clip_images)
+				fig=self.resize_image_add_target_points(image_grid)
+				fig.canvas.draw()
+				pil_image=PIL.Image.frombytes('RGB', 
+					fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
+				plt.close(fig)
+				wandb.log({	
+					"weights": wandb.Image(pil_image),
+					"loss" : loss.item()
+				})
 		if wandb.run is not None:
 			wandb.finish()
 		return
@@ -121,13 +121,15 @@ class STM(BaseSOM):
 		for i in range(rep):
 			# if i==1:
 			# 	self.sigma=7
-			print("Training on labels in range "+str(i*subset_size) +"<"+str((i+1)*subset_size))
+			print("Training on labels in range:\t"+str(i*subset_size) +" <= label < "+str((i+1)*subset_size))
 			if disjoint_training:
 				indices = torch.where((dataset.targets>=i*subset_size) & (dataset.targets<(i+1)*subset_size))[0].tolist()
 			else:
 				indices = torch.where(dataset.targets<(i+1)*subset_size)[0].tolist()
 
-			data_loader = torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, indices),
+			subset_lll=torch.utils.data.Subset(dataset, indices)
+			print("This subset contains "+str(len(subset_lll))+" elements.")
+			data_loader = torch.utils.data.DataLoader(subset_lll,
 											batch_size=batch_size,
 											shuffle=True,
 											)
@@ -139,8 +141,9 @@ class STM(BaseSOM):
 					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no) #TODO: decay decrease as ?
 					target_dist = self._target_distance_batch(batch, decay_rate, iter_no)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
-					distance_matrix = torch.cdist(batch[0], self.weights, p=2) # dim = (batch_size, som_dim) 
-					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,distance_matrix)))
+					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
+					distance_matrix_norms = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
+					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,distance_matrix_norms)))
 
 					loss.backward()
 					optimizer.step()
@@ -148,7 +151,7 @@ class STM(BaseSOM):
 
 					# self._update_counter(counter) come tengo conto delle posizioni dove la rete ha già imparato usando solo il counter?
 
-			self.sigma=max((self.sigma*0.5),max(self.m,self.n)/10) #TODO: sigma decrease each time a new subset is presented
+			self.sigma=max((self.sigma*0.9),5) #TODO: sigma decrease each time a new subset is presented
 			image_grid=self.create_image_grid(clip_images)
 			np.save('array.npy', image_grid)
 			if wandb_log:
@@ -179,8 +182,8 @@ class STM(BaseSOM):
 		
 		learning_rate_op = np.exp(-it/decay_rate)
 		sigma_op = self.sigma * learning_rate_op
-		#sigma_op= max(self.m,self.n)/5 #TODO: move Hyperparameter outside the function
-		sigma_op = sigma_op * learning_rate_op
+		# sigma_op= 5 #TODO: move Hyperparameter outside the function
+		# sigma_op = sigma_op * learning_rate_op
 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1) # (batch_size, som_dim, 2)
 		target_distances_squares = torch.sum(torch.pow(target_distances, 2), 2) # (batch_size, som_dim)
