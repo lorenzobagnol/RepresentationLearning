@@ -21,6 +21,38 @@ class BaseRunner(ABC):
 		self.dataset_name=dataset_name
 		self.input_data=input_data
 
+
+	def generate_equally_distributed_points(self, n_points):
+		grid_div_x = int((n_points * self.config.M / self.config.N) ** 0.5)  # Divisions along the x-axis (height)
+		grid_div_y = int(n_points / grid_div_x)  # Divisions along the y-axis (width)
+
+		# Handle edge cases where the divisions might be too small or large
+		if grid_div_x == 0: grid_div_x = 1
+		if grid_div_y == 0: grid_div_y = 1 # Number of divisions along the y-axis (N dimension)
+		if grid_div_x * grid_div_y < n_points:
+			grid_div_y += 1
+		grid_step_x = self.config.M / grid_div_x  # Step size in the x direction
+		grid_step_y = self.config.N / grid_div_y  # Step size in the y direction
+		
+		points = []
+		stop_loop=False
+		for i in range(grid_div_x):
+			for j in range(grid_div_y):
+				# Generate one random point in each grid cell
+				x = random.randint(i * int(grid_step_x), min(int((i + 1) * grid_step_x) - 1, self.config.M - 1))
+				y = random.randint(j * int(grid_step_y), min(int((j + 1) * grid_step_y) - 1, self.config.N - 1))
+				points.append([x, y])
+				if len(points) >= n_points:
+					stop_loop=True
+					break
+			if stop_loop:
+				break
+		dict_points={k : torch.Tensor(v) for k,v in enumerate(points)}
+		return dict_points
+
+
+
+
 	def parse_arguments(self):
 		"""
 		Parse command line arguments.
@@ -99,12 +131,13 @@ class BaseRunner(ABC):
 				break
 
 	def run(self):
-		"""Main function to run the training and plotting of the SOM/STM."""
-		args = self.parse_arguments()
-		
-		# Set random seed
+		"""
+		Main function to run the training and plotting of the SOM/STM.
+		"""
 		torch.manual_seed(self.config.SEED)
-		random.seed=self.config.SEED
+		random.seed(self.config.SEED)
+
+		args = self.parse_arguments()
 		dataset_train, dataset_val, target_points = self.create_dataset()
 		match args.model:
 			case "som":

@@ -64,7 +64,7 @@ class BaseSOM(nn.Module, ABC):
         Compute the neighborhood function for a batch of inputs.
 
         Args:
-            batch (torch.Tensor): Batch of input vectors.
+            batch (torch.Tensor): Batch of input vectors. B x D where D = total dimension (image_dim*channels)
 			decay_rate (int): Decay rate for the learning rate.
             it (int): Current iteration number.
 
@@ -72,7 +72,8 @@ class BaseSOM(nn.Module, ABC):
             torch.Tensor: Neighborhood function values.
         """
 		# look for the best matching unit (BMU)
-		dists = torch.cdist(batch, self.weights, p=2) # (batch_size, som_dim)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 		
