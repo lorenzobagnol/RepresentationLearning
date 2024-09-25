@@ -9,6 +9,7 @@ from utils.inputdata import InputData
 import argparse
 import wandb
 import random
+import math
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -22,35 +23,34 @@ class BaseRunner(ABC):
 		self.input_data=input_data
 
 
-	def generate_equally_distributed_points(self, n_points):
-		grid_div_x = int((n_points * self.config.M / self.config.N) ** 0.5)  # Divisions along the x-axis (height)
-		grid_div_y = int(n_points / grid_div_x)  # Divisions along the y-axis (width)
+	def generate_equally_distributed_points(self, P: int):
+		# Adjust M and N to exclude the borders (from 1 to M-2 and 1 to N-2)
+		if self.config.M <= 2 or self.config.N <= 2:
+			raise ValueError("Grid is too small to exclude borders.")
 
-		# Handle edge cases where the divisions might be too small or large
-		if grid_div_x == 0: grid_div_x = 1
-		if grid_div_y == 0: grid_div_y = 1 # Number of divisions along the y-axis (N dimension)
-		if grid_div_x * grid_div_y < n_points:
-			grid_div_y += 1
-		grid_step_x = self.config.M / grid_div_x  # Step size in the x direction
-		grid_step_y = self.config.N / grid_div_y  # Step size in the y direction
-		
-		points = []
-		stop_loop=False
-		for i in range(grid_div_x):
-			for j in range(grid_div_y):
-				# Generate one random point in each grid cell
-				x = random.randint(i * int(grid_step_x), min(int((i + 1) * grid_step_x) - 1, self.config.M - 1))
-				y = random.randint(j * int(grid_step_y), min(int((j + 1) * grid_step_y) - 1, self.config.N - 1))
-				points.append([x, y])
-				if len(points) >= n_points:
-					stop_loop=True
-					break
-			if stop_loop:
-				break
-		dict_points={k : torch.Tensor(v) for k,v in enumerate(points)}
+		# Compute the best possible factors for k_x and k_y, excluding borders
+		k_x = int(math.sqrt(P * (self.config.M - 2) / (self.config.N - 2)))  # Approximate number of points in the x (row) direction
+		k_y = int(math.sqrt(P * (self.config.N - 2) / (self.config.M - 2)))  # Approximate number of points inself.config. the y (col) direction
+
+		# Adjust k_x and k_y to ensure the total number of points is at least P
+		while k_x * k_y < P:
+			if k_x < k_y:
+				k_x += 1
+			else:
+				k_y += 1
+
+		# Compute step sizes in the inner grid (excluding borders)
+		step_x = (self.config.M - 2 - 1) / (k_x - 1) if k_x > 1 else 0
+		step_y = (self.config.N - 2 - 1) / (k_y - 1) if k_y > 1 else 0
+
+		# Generate points in the range [1, M-2] and [1, N-2] to avoid borders
+		x_coords = [round(1 + i * step_x) for i in range(k_x)]
+		y_coords = [round(1 + j * step_y) for j in range(k_y)]
+
+		# Combine x and y coordinates to get the points
+		points = [(x, y) for x in x_coords for y in y_coords]
+		dict_points={k : torch.Tensor(v) for k,v in enumerate(points[:P])}
 		return dict_points
-
-
 
 
 	def parse_arguments(self):
