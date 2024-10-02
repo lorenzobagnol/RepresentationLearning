@@ -31,7 +31,7 @@ class STM(BaseSOM):
 		super().__init__(m = m, n = n, input_data = input_data, sigma = sigma)
 		self.target_points = target_points
 
-	def train_batch_pytorch(self, dataset: datasets, batch_size: int, epochs: int, learning_rate: float, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
+	def train_batch_pytorch(self, dataset_train: datasets, dataset_val: datasets, batch_size: int, epochs: int, learning_rate: float, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
 		Train the STM using PyTorch's built-in optimizers and backpropagation.
 
@@ -46,14 +46,14 @@ class STM(BaseSOM):
 		print("\u2022 batch size = "+str(batch_size))
 		print("\u2022 epochs = "+str(epochs))
 		print("\u2022 learning rate = "+str(learning_rate))
-		print("\u2022 decay_rate = "+str(decay_rate))
+		print("\u2022 decay_rate = "+str(decay_rate)+"\n\n\n")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
-		data_loader = torch.utils.data.DataLoader(dataset,
+		data_loader = torch.utils.data.DataLoader(dataset_train,
                                           batch_size=batch_size,
                                           shuffle=True,)
 		print("\u2713", flush=True)
-
+		print("\n\n\n")
 		self.train()
 		optimizer = torch.optim.Adam(self.parameters(), lr = learning_rate)
 		for iter_no in tqdm(range(epochs), desc=f"Epochs", leave=True, position=0):
@@ -83,7 +83,7 @@ class STM(BaseSOM):
 			wandb.finish()
 		return
 
-	def train_lifelong(self, dataset: datasets, batch_size: int, subset_size: int, epochs_per_subset: int, disjoint_training: bool, learning_rate: int, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
+	def train_lifelong(self, dataset_train: datasets, dataset_val: datasets, batch_size: int, subset_size: int, epochs_per_subset: int, disjoint_training: bool, learning_rate: int, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
 		Train the STM using a Continual Learning approach. The dataset is divided basing on labels and the training is divided too. PyTorch's built-in optimizers and backpropagation.
 
@@ -101,71 +101,113 @@ class STM(BaseSOM):
 		print("\u2022 subset_size = "+str(subset_size))
 		print("\u2022 epochs_per_subset = "+str(epochs_per_subset))
 		print("\u2022 subset disjoint = "+str(disjoint_training))
-		print("\u2022 learning rate = "+str(learning_rate))
-		print("\u2022 decay_rate = "+str(decay_rate))
+		print("\u2022 learning rate = "+str(learning_rate)+"\n\n\n")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
-		data_loader = torch.utils.data.DataLoader(dataset,
+		data_loader = torch.utils.data.DataLoader(dataset_train,
                                           batch_size=batch_size,
                                           shuffle=True,)
 		print("\u2713 \n", flush=True)
-		
+		print("\n\n\n")
 		self.train()
 		
-		labels = list(set(dataset.targets.detach().tolist()))
+		labels = list(set(dataset_train.targets.detach().tolist()))
 		for i in range(len(labels)):
 			if i not in labels:
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		rep = math.ceil(len(labels)/subset_size)
-		#counter = {lab : 0 for lab in labels}
 		for i in range(rep):
-			# if i==1:
-			# 	self.sigma=7
+			if i==1:
+				self.sigma=1.5
+				epochs_per_subset=5
+				learning_rate/=10.
+				print("Parameters changed:")
+				print("sigma = "+str(self.sigma))
+				print("learning_rate = "+str(learning_rate))
 			print("Training on labels in range:\t"+str(i*subset_size) +" <= label < "+str((i+1)*subset_size))
 			if disjoint_training:
-				indices = torch.where((dataset.targets>=i*subset_size) & (dataset.targets<(i+1)*subset_size))[0].tolist()
+				indices = torch.where((dataset_train.targets>=i*subset_size) & (dataset_train.targets<(i+1)*subset_size))[0].tolist()
 			else:
-				indices = torch.where(dataset.targets<(i+1)*subset_size)[0].tolist()
+				indices = torch.where(dataset_train.targets<(i+1)*subset_size)[0].tolist()
 
-			subset_lll=torch.utils.data.Subset(dataset, indices)
+			subset_lll=torch.utils.data.Subset(dataset_train, indices)
 			print("This subset contains "+str(len(subset_lll))+" elements.")
 			data_loader = torch.utils.data.DataLoader(subset_lll,
 											batch_size=batch_size,
 											shuffle=True,
 											)
-			
+			decay_rate=int((len(subset_lll)/batch_size)*epochs_per_subset) # network is very instable wrt this parameter. do not touch
 			optimizer = torch.optim.Adam(self.parameters(), lr = learning_rate)
+			stop_flag = False
 			for iter_no in tqdm(range(epochs_per_subset), desc=f"Epochs", leave=True, position=0):
 				for b, batch in enumerate(data_loader):
 					
-					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, iter_no) #TODO: decay decrease as ?
-					target_dist = self._target_distance_batch(batch, decay_rate, iter_no)
+					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, b+(iter_no*len(subset_lll)/batch_size)) 
+					target_dist = self._target_distance_batch(batch, decay_rate, b+(iter_no*len(subset_lll)/batch_size))
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					distance_matrix_norms = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
-					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,distance_matrix_norms)))
+					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, distance_matrix_norms)))
 
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
+					
+				# with torch.no_grad():
+				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)
+				# 	print(local_competence)
+					
+				# if local_competence < 0.0001:
+				# 	print("Training interrupted for this subest after "+str(iter_no)+" epochs.")
+				# 	print("Small local competence obtained : "+str(local_competence)+"\n")
+				# 	stop_flag = True
+				# 	break
 
-					# self._update_counter(counter) come tengo conto delle posizioni dove la rete ha già imparato usando solo il counter?
-
-			self.sigma=max((self.sigma*0.9),5) #TODO: sigma decrease each time a new subset is presented
-			image_grid=self.create_image_grid(clip_images)
-			np.save('array.npy', image_grid)
-			if wandb_log:
-				image_grid=self.create_image_grid(clip_images)
-				fig=self.resize_image_add_target_points(image_grid)
-				fig.savefig('temp_image.png', format='png', bbox_inches='tight', pad_inches=0.1)
-				wandb.log({	
-						"weights": wandb.Image('temp_image.png'),
-						"loss" : loss.item()
+				if wandb_log:
+					image_grid=self.create_image_grid(clip_images)
+					fig=self.resize_image_add_target_points(image_grid)
+					fig.canvas.draw()
+					pil_image=PIL.Image.frombytes('RGB', 
+						fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
+					plt.close(fig)
+					wandb.log({	
+						"weights": wandb.Image(pil_image),
+						"loss" : loss.item(),
+						#"local competence" : local_competence
 					})
-				plt.close(fig)
 		if wandb.run is not None:
 			wandb.finish()
 		return
+	
+	def _compute_local_competence(self, val_set: datasets, label: int, batch_size: int):
+
+		self.eval()
+		indices = torch.where(val_set.targets==label)[0].tolist()
+		subset_val=torch.utils.data.Subset(val_set, indices)
+		data_loader = torch.utils.data.DataLoader(subset_val,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		
+		# compute mask around the target point
+		target_loc=torch.stack([self.target_points[label] for i in range(batch_size)]) # (batch_size, 2) 
+		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
+		target_distances_squares = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
+		mask = (target_distances_squares<self.sigma) #TODO see if it makes sense with small sigma around 1.5
+
+		total_distance=0
+		for b, batch in enumerate(data_loader):
+			dists = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # (batch_size, som_dim, image_tot_dim)
+			dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+			masked_dists = dists*mask
+			total_distance += torch.sum(masked_dists).item()
+		
+		total_distance /= len(subset_val)
+		total_distance /= torch.sum(mask).item()
+
+		self.train()
+		return total_distance
+			
 	
 	def _target_distance_batch(self, batch: torch.Tensor, decay_rate: int, it: int) -> torch.Tensor:
 		"""

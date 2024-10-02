@@ -30,10 +30,11 @@ class InputData():
 		if self.channels==1:
 			return x.reshape(self.dim1, self.dim2)
 		if self.channels==3:
-			return x.reshape(self.dim1, self.dim2, self.channels)
+			return x.reshape(self.channels, self.dim1, self.dim2).permute(1, 2, 0)
 	
-	def transform_dataset(self, dataset: Sequence[torch.Tensor]) -> Sequence[torch.Tensor]:
+	def transform_dataset(self, dataset: torch.Tensor) -> torch.Tensor:
 		transformed_data=[]
 		for data in dataset:
 			transformed_data.append(self.transform_data(data))
+		transformed_data=torch.stack(transformed_data, dim=0)
 		return transformed_data

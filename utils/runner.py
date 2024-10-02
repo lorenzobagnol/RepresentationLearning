@@ -72,7 +72,7 @@ class BaseRunner(ABC):
 	def create_dataset(self) -> tuple[Any, torch.utils.data.Dataset, dict[int, torch.Tensor]]:
 		pass
 
-	def train_som(self, som: SOM, dataset: TensorDataset, wandb_log: bool):
+	def train_som(self, som: SOM, dataset_train: TensorDataset, wandb_log: bool):
 		"""
 		Train the SOM based on the specified mode.
 		
@@ -89,22 +89,22 @@ class BaseRunner(ABC):
 				if wandb_log:
 					wandb.init(project='SOM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("You have choose to train a SOM model with "+train_mode+" mode.")
-				som.train_batch(dataset, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_SIMPLE_BATCH, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
+				som.train_batch(dataset_train, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_SIMPLE_BATCH, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
 				break
 			elif train_mode == "pytorch_batch":
 				if wandb_log:
 					wandb.init(project='SOM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("You have choose to train a SOM model with "+train_mode+" mode.")
-				som.train_batch_pytorch(dataset, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_PYTORCH_BATCH, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
+				som.train_batch_pytorch(dataset_train, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_PYTORCH_BATCH, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
 				break
 			elif train_mode == "online":
 				if wandb_log:
 					wandb.init(project='SOM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("You have choose to train a SOM model with "+train_mode+" mode.")
-				som.train_online(dataset, epochs = self.config.EPOCHS_ONLINE, decay_rate=self.config.DECAY, alpha=self.config.LEARNING_RATE, wandb_log = wandb_log, clip_images=True)
+				som.train_online(dataset_train, epochs = self.config.EPOCHS_ONLINE, decay_rate=self.config.DECAY, alpha=self.config.LEARNING_RATE, wandb_log = wandb_log, clip_images=True)
 				break
 
-	def train_stm(self, stm: STM, dataset: TensorDataset, wandb_log: bool):
+	def train_stm(self, stm: STM, dataset_train: TensorDataset, dataset_val: TensorDataset, wandb_log: bool):
 		"""
 		Train the SOM based on the specified mode.
 		
@@ -121,13 +121,13 @@ class BaseRunner(ABC):
 				if wandb_log:
 					wandb.init(project='STM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("\nYou have choose to train a STM model with "+train_mode+" mode.")
-				stm.train_batch_pytorch(dataset, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_PYTORCH_BATCH, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
+				stm.train_batch_pytorch(dataset_train, dataset_val, batch_size = self.config.BATCH_SIZE, epochs = self.config.EPOCHS_PYTORCH_BATCH, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
 				break
 			if train_mode == "LifeLong_learning":
 				if wandb_log:
 					wandb.init(project='STM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("\nYou have choose to train a STM model with "+train_mode+" mode.")
-				stm.train_lifelong(dataset, batch_size = self.config.BATCH_SIZE, subset_size = self.config.LLL_SUBSET_SIZE, epochs_per_subset =  self.config.LLL_EPOCHS_PER_SUBSET, disjoint_training =  self.config.LLL_DISJOINT, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
+				stm.train_lifelong(dataset_train, dataset_val, batch_size = self.config.BATCH_SIZE, subset_size = self.config.LLL_SUBSET_SIZE, epochs_per_subset =  self.config.LLL_EPOCHS_PER_SUBSET, disjoint_training =  self.config.LLL_DISJOINT, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
 				break
 
 	def run(self):
@@ -147,7 +147,7 @@ class BaseRunner(ABC):
 				fig=som.resize_image(image_grid)
 			case "stm":
 				stm = STM(self.config.M, self.config.N, self.input_data, target_points=target_points, sigma= self.config.SIGMA)
-				self.train_stm(stm, dataset_train, args.wandb_log)
+				self.train_stm(stm, dataset_train,  dataset_val, args.wandb_log)
 				image_grid = stm.create_image_grid()
 				fig=stm.resize_image_add_target_points(image_grid)
 		plt.show()

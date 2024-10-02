@@ -3,8 +3,5 @@ FROM python:3.13.0rc1-alpine3.20
 WORKDIR /workspace
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
 COPY . .
-
-CMD [ "python", "./colors.py" ]
+RUN pip install --no-cache-dir -r requirements.txt
