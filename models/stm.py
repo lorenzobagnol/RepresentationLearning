@@ -152,6 +152,16 @@ class STM(BaseSOM):
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
+				
+				checkpoint_path="/checkpoint/checkpoint.pt"
+				torch.save({
+					'label_range': i, 
+					'epoch': iter_no,
+					'tot_epoch': epochs_per_subset,
+					'model_state_dict': self.state_dict(),
+					'optimizer_state_dict': optimizer.state_dict(),
+					'loss': loss.item(),
+					}, checkpoint_path)
 					
 				# with torch.no_grad():
 				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)

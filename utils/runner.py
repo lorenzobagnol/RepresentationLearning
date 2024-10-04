@@ -27,31 +27,25 @@ class BaseRunner(ABC):
 		# Adjust M and N to exclude the borders (from 1 to M-2 and 1 to N-2)
 		if self.config.M <= 2 or self.config.N <= 2:
 			raise ValueError("Grid is too small to exclude borders.")
-
 		# Compute the best possible factors for k_x and k_y, excluding borders
 		k_x = int(math.sqrt(P * (self.config.M - 2) / (self.config.N - 2)))  # Approximate number of points in the x (row) direction
 		k_y = int(math.sqrt(P * (self.config.N - 2) / (self.config.M - 2)))  # Approximate number of points inself.config. the y (col) direction
-
 		# Adjust k_x and k_y to ensure the total number of points is at least P
 		while k_x * k_y < P:
 			if k_x < k_y:
 				k_x += 1
 			else:
 				k_y += 1
-
 		# Compute step sizes in the inner grid (excluding borders)
 		step_x = (self.config.M - 2 - 1) / (k_x - 1) if k_x > 1 else 0
 		step_y = (self.config.N - 2 - 1) / (k_y - 1) if k_y > 1 else 0
-
 		# Generate points in the range [1, M-2] and [1, N-2] to avoid borders
 		x_coords = [round(1 + i * step_x) for i in range(k_x)]
 		y_coords = [round(1 + j * step_y) for j in range(k_y)]
-
 		# Combine x and y coordinates to get the points
 		points = [(x, y) for x in x_coords for y in y_coords]
 		dict_points={k : torch.Tensor(v) for k,v in enumerate(points[:P])}
 		return dict_points
-
 
 	def parse_arguments(self):
 		"""

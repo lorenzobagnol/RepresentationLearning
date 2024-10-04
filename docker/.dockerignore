@@ -1,5 +1,6 @@
-../rep_env/
-../MNIST/
-../cifar-10-batches-py
-../__pycache__/
-../*wandb/
+docker/
+rep_env/
+MNIST/
+cifar-10-batches-py
+__pycache__/
+*wandb/

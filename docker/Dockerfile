@@ -1,4 +1,4 @@
 FROM python:3.11.10-slim
-WORKDIR /workspace
+COPY requirements.txt /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
 ENV WANDB_API_KEY=2aa2cc64e8422604fbbc4711274a7680f8ce951b
-RUN pip install -r requirements.txt
