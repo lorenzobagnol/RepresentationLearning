@@ -7,6 +7,7 @@ import torch
 from utils.inputdata import InputData
 import random
 from utils.runner import BaseRunner
+import os
 
 class Config():
 	"""Configuration class for setting constants."""
@@ -37,25 +38,25 @@ class MnistRunner(BaseRunner):
 		"""
 		# data in .data and labels in .targets
 		MNIST_train = torchvision.datasets.MNIST(
-			root="C:\\Users\\loren\\Documenti\\Lorenzo\\CNR\\RepresentationLearning",
+			root=os.path.curdir,
 			train=True,
 			download=True,
 			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
 		)
 		MNIST_val = torchvision.datasets.MNIST(
-			root="C:\\Users\\loren\\Documenti\\Lorenzo\\CNR\\RepresentationLearning",
+			root=os.path.curdir,
 			train=False,
 			download=True,
 			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
 		)
-		MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(10000)])
-		MNIST_train_subset.targets=MNIST_train.targets[0:10000]
-		MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
-		MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
+		# MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(10000)])
+		# MNIST_train_subset.targets=MNIST_train.targets[0:10000]
+		# MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
+		# MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
 	
 		target_points=self.generate_equally_distributed_points(10)
 
-		return MNIST_train_subset, MNIST_val_subset, target_points
+		return MNIST_train, MNIST_val, target_points
 
 
 
