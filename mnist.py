@@ -1,38 +1,19 @@
-import torch.utils
-import torch.utils.data
-import torch.utils.data.dataset
 import torchvision
-from torch.utils.data import TensorDataset
 import torch
-from utils.inputdata import InputData
 import random
-from utils.runner import BaseRunner
 import os
+from dataclasses import dataclass
 
-class Config():
-	"""Configuration class for setting constants."""
-	M, N = 20, 20
-	INPUT_DIM = (28,28)
-	SEED = 13
-	DECAY = 90 # good practice: decay about 90% of number of weights update
-	SIGMA = 5
-	ALPHA = 0.5
-	BETA = 0.5
-	BATCH_SIZE = 20
-	EPOCHS_ONLINE = 1
-	EPOCHS_SIMPLE_BATCH = 20
-	EPOCHS_PYTORCH_BATCH = 40
-	LLL_EPOCHS_PER_SUBSET = 20
-	LLL_SUBSET_SIZE = 1
-	LLL_DISJOINT = True
-	LEARNING_RATE = 0.01
+from utils.inputdata import InputData
+from utils.runner import BaseRunner
+from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig
 
-config_dict={key: value for key, value in Config.__dict__.items() if not key.startswith('_')}
+
 
 
 class MnistRunner(BaseRunner):
 
-	def __init__(self, config: object, dataset_name: str, input_data: InputData):
+	def __init__(self, config: Config, dataset_name: str, input_data: InputData):
 		super().__init__(config=config, dataset_name=dataset_name, input_data=input_data)
 		
 	def create_dataset(self):
@@ -61,10 +42,16 @@ class MnistRunner(BaseRunner):
 		return MNIST_train_subset, MNIST_val_subset, target_points
 
 
-
-config=Config
-random.seed(config.SEED)
 input_data=InputData((28,28),1,"Unit")
+config = Config(
+	SEED=13,
+    som_config=SOMConfig(M=20, N=20, SIGMA=10),
+    lifelong_config=LifeLongConfig(ALPHA=2, BETA=0, BATCH_SIZE=20, EPOCHS_PER_SUBSET=40, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_INITIAL=1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.001),
+    simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20),
+    pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001),
+    online_config=OnlineConfig(EPOCHS=1)
+)
+random.seed(config.SEED)
 mnist_runner=MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
 mnist_runner.run()
 

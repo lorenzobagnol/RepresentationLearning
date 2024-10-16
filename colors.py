@@ -75,6 +75,6 @@ class colorsRunner(BaseRunner):
 
 
 config=Config
-input_data=InputData(0,3,"RGB")
+input_data=InputData((1,1),3,"RGB")
 color_runner=colorsRunner(config=config, dataset_name="colors", input_data=input_data)
 color_runner.run()
