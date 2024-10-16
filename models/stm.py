@@ -1,4 +1,4 @@
-import io
+import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -83,7 +83,7 @@ class STM(BaseSOM):
 			wandb.finish()
 		return
 
-	def train_lifelong(self, dataset_train: datasets, dataset_val: datasets, batch_size: int, subset_size: int, epochs_per_subset: int, disjoint_training: bool, learning_rate: int, decay_rate: float, wandb_log: bool = False, clip_images: bool = False):
+	def train_lifelong(self, dataset_train: datasets, dataset_val: datasets, batch_size: int, subset_size: int, epochs_per_subset: int, disjoint_training: bool, learning_rate: int, alpha: float, beta: float, wandb_log: bool = False, clip_images: bool = False):
 		"""
 		Train the STM using a Continual Learning approach. The dataset is divided basing on labels and the training is divided too. PyTorch's built-in optimizers and backpropagation.
 
@@ -101,7 +101,8 @@ class STM(BaseSOM):
 		print("\u2022 subset_size = "+str(subset_size))
 		print("\u2022 epochs_per_subset = "+str(epochs_per_subset))
 		print("\u2022 subset disjoint = "+str(disjoint_training))
-		print("\u2022 learning rate = "+str(learning_rate)+"\n\n\n")
+		print("\u2022 alpha = "+str(alpha))
+		print("\u2022 beta = "+str(beta)+"\n\n\n")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -117,13 +118,7 @@ class STM(BaseSOM):
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		rep = math.ceil(len(labels)/subset_size)
 		for i in range(rep):
-			if i==1:
-				self.sigma=1.5
-				epochs_per_subset=5
-				learning_rate/=10.
-				print("Parameters changed:")
-				print("sigma = "+str(self.sigma))
-				print("learning_rate = "+str(learning_rate))
+
 			print("Training on labels in range:\t"+str(i*subset_size) +" <= label < "+str((i+1)*subset_size))
 			if disjoint_training:
 				indices = torch.where((dataset_train.targets>=i*subset_size) & (dataset_train.targets<(i+1)*subset_size))[0].tolist()
@@ -137,9 +132,11 @@ class STM(BaseSOM):
 											shuffle=True,
 											)
 			decay_rate=int((len(subset_lll)/batch_size)*epochs_per_subset) # network is very instable wrt this parameter. do not touch
-			optimizer = torch.optim.Adam(self.parameters(), lr = learning_rate)
+			lr_global= learning_rate*math.exp(-alpha*i)
+			optimizer = torch.optim.Adam(self.parameters(), lr = lr_global)
 			stop_flag = False
 			for iter_no in tqdm(range(epochs_per_subset), desc=f"Epochs", leave=True, position=0):
+				lr_local=lr_global*math.exp(-beta*iter_no)
 				for b, batch in enumerate(data_loader):
 					
 					neighbourhood_func = self._neighbourhood_batch(batch[0], decay_rate, b+(iter_no*len(subset_lll)/batch_size)) 
@@ -153,7 +150,7 @@ class STM(BaseSOM):
 					optimizer.step()
 					optimizer.zero_grad()
 				
-				checkpoint_path="/checkpoint/checkpoint.pt"
+				checkpoint_path= os.path.join(os.path.curdir,"checkpoint.pt")
 				torch.save({
 					'label_range': i, 
 					'epoch': iter_no,

@@ -121,7 +121,7 @@ class BaseRunner(ABC):
 				if wandb_log:
 					wandb.init(project='STM-'+self.dataset_name, config= config_dict, job_type= train_mode)
 				print("\nYou have choose to train a STM model with "+train_mode+" mode.")
-				stm.train_lifelong(dataset_train, dataset_val, batch_size = self.config.BATCH_SIZE, subset_size = self.config.LLL_SUBSET_SIZE, epochs_per_subset =  self.config.LLL_EPOCHS_PER_SUBSET, disjoint_training =  self.config.LLL_DISJOINT, learning_rate = self.config.LEARNING_RATE, decay_rate=self.config.DECAY, wandb_log = wandb_log, clip_images=True)
+				stm.train_lifelong(dataset_train, dataset_val, batch_size = self.config.BATCH_SIZE, subset_size = self.config.LLL_SUBSET_SIZE, epochs_per_subset = self.config.LLL_EPOCHS_PER_SUBSET, disjoint_training =  self.config.LLL_DISJOINT, learning_rate = self.config.LEARNING_RATE, alpha=self.config.ALPHA, beta=self.config.BETA, wandb_log = wandb_log, clip_images=True)
 				break
 
 	def run(self):
