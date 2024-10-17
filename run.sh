@@ -2,4 +2,4 @@
 python_file="./mnist.py"
 echo '
     Running '$python_file
-python $python_file --model stm --log
+nohup python -u $python_file --model stm --log  > log.out 2>&1 
