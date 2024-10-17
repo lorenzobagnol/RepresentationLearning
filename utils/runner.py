@@ -64,6 +64,7 @@ class BaseRunner(ABC):
 						description='this script can train a SOM or a STM with MNIST dataset',
 						epilog='Text at the bottom of help')
 		parser.add_argument("--model", dest='model', help="The model to run. Could be 'som', 'stm' or 'AE'", type=str, required=True)
+		parser.add_argument("--training", dest='training_mode', help="The training mode. Could be 'simple_batch', 'online', 'pytorch_batch', 'LifeLong'", type=str, default=None)
 		parser.add_argument("--log", dest='wandb_log', help="Add '--log' to log in wandb.", action='store_true')
 		return parser.parse_args()
 	
@@ -71,7 +72,7 @@ class BaseRunner(ABC):
 	def create_dataset(self) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset, dict[int, torch.Tensor]]:
 		pass
 
-	def select_training(self, model: Union[SOM, STM], dataset_train: TensorDataset, dataset_val: TensorDataset, wandb_log: bool):
+	def select_training(self, model: Union[SOM, STM], dataset_train: TensorDataset, dataset_val: TensorDataset, wandb_log: bool, train_mode: str = None):
 		"""
 		Train the SOM based on the specified mode.
 		
@@ -82,10 +83,13 @@ class BaseRunner(ABC):
 		"""
 		
 		trainer = SOMTrainer(model, wandb_log, True)
-		while True:
-			train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))
-			if train_mode in trainer.available_training_modes():
-				break
+		if train_mode==None:
+			while True:
+				train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))
+				if train_mode in trainer.available_training_modes():
+					break
+		if train_mode not in trainer.available_training_modes():
+			print("wrong training mode selected")
 		model_name="STM" if type(model) is STM else "SOM"
 		if wandb_log:
 			wandb.init(project=model_name+'-'+self.dataset_name, job_type= train_mode)
@@ -117,5 +121,5 @@ class BaseRunner(ABC):
 				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)
 			case "stmstc":
 				model = STMSTC(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)
-		self.select_training(model, dataset_train, dataset_val, args.wandb_log)
+		self.select_training(model, dataset_train, dataset_val, args.wandb_log, args.training_mode)
 
