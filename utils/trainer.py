@@ -229,9 +229,10 @@ class SOMTrainer():
 			lr_global = kwargs["LR_GLOBAL_INITIAL"]*math.exp(-kwargs["ALPHA"]*i)
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
 			stop_flag = False
+
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				lr_local = lr_global*math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no),1.)
+				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				print("sigma_local "+str(sigma_local))
 				for b, batch in enumerate(data_loader):
 					neighbourhood_func = self.model.neighbourhood_batch(batch[0], radius=sigma_local)
@@ -239,7 +240,7 @@ class SOMTrainer():
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
-					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+					loss = torch.mul(1/2*lr_local,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 					loss.backward()
 					optimizer.step()
