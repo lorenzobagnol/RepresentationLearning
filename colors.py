@@ -1,28 +1,11 @@
-import numpy as np
 import torch
+import random
+
 from utils.inputdata import InputData
 from torch.utils.data import TensorDataset
-import random
 from utils.runner import BaseRunner
+from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig
 
-
-class Config():
-	"""Configuration class for setting constants."""
-	M, N = 100, 100
-	INPUT_DIM = 3
-	SEED = 13
-	DECAY = 1000
-	SIGMA = 5
-	BATCH_SIZE = 20
-	EPOCHS_ONLINE = 100
-	EPOCHS_SIMPLE_BATCH = 200
-	EPOCHS_PYTORCH_BATCH = 400
-	LLL_EPOCHS_PER_SUBSET = 40
-	LLL_SUBSET_SIZE = 1
-	LLL_DISJOINT = True
-	LEARNING_RATE = 0.01
-
-config_dict={key: value for key, value in Config.__dict__.items() if not key.startswith('_')}
 
 class colorsRunner(BaseRunner):
 
@@ -74,7 +57,15 @@ class colorsRunner(BaseRunner):
 		return train_dataset, val_dataset, target_points
 
 
-config=Config
 input_data=InputData((1,1),3,"RGB")
+config = Config(
+	SEED=13,
+    som_config=SOMConfig(M=20, N=20, SIGMA=10),
+    lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.01, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
+    simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20),
+    pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001),
+    online_config=OnlineConfig(EPOCHS=1)
+)
+random.seed(config.SEED)
 color_runner=colorsRunner(config=config, dataset_name="colors", input_data=input_data)
 color_runner.run()

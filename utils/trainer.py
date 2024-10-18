@@ -205,15 +205,18 @@ class SOMTrainer():
 											shuffle=True,)
 		print("\u2713 \n", flush=True)
 		print("\n\n\n")
+
 		self.model.train()
 		
 		labels = list(set(dataset_train.targets.detach().tolist()))
 		for i in range(len(labels)):
 			if i not in labels:
 				raise Exception("Dataset labels must be consecutive starting from zero.")
-		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
+		
 		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
+		
+		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
 		for i in range(rep):
 			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
 			if kwargs["DISJOINT_TRAINING"]:
@@ -253,11 +256,10 @@ class SOMTrainer():
 					wandb.log({	
 						"weights": wandb.Image(pil_image),
 						"loss" : loss.item(),
-						#"local competence" : local_competence
 					})
 
 			scheduler.step()
-			
+
 			checkpoint_path= os.path.join(os.path.curdir,"checkpoint.pt")
 			torch.save({
 				'label_range': i, 

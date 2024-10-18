@@ -2,7 +2,6 @@ import torchvision
 import torch
 import random
 import os
-from dataclasses import dataclass
 
 from utils.inputdata import InputData
 from utils.runner import BaseRunner
