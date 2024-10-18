@@ -23,7 +23,7 @@ class LifeLongConfig(BaseConfig):
     EPOCHS_PER_SUBSET: int
     SUBSET_SIZE: int
     DISJOINT_TRAINING: bool
-    LR_GLOBAL_INITIAL: float
+    LR_GLOBAL_BASELINE: float
     SIGMA_BASELINE: float
     LEARNING_RATE: float
 

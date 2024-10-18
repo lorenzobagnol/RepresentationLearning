@@ -45,8 +45,8 @@ class MnistRunner(BaseRunner):
 input_data=InputData((28,28),1,"Unit")
 config = Config(
 	SEED=13,
-    som_config=SOMConfig(M=20, N=20, SIGMA=5),
-    lifelong_config=LifeLongConfig(ALPHA=0.1, BETA=0.1, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_INITIAL=1, SIGMA_BASELINE=1, LEARNING_RATE=0.01),
+    som_config=SOMConfig(M=20, N=20, SIGMA=10),
+    lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.01, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
     simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20),
     pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001),
     online_config=OnlineConfig(EPOCHS=1)

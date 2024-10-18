@@ -213,6 +213,7 @@ class SOMTrainer():
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
 		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
+		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
 		for i in range(rep):
 			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
 			if kwargs["DISJOINT_TRAINING"]:
@@ -226,14 +227,14 @@ class SOMTrainer():
 											batch_size=kwargs["BATCH_SIZE"],
 											shuffle=True,
 											)
-			lr_global = kwargs["LR_GLOBAL_INITIAL"]*math.exp(-kwargs["ALPHA"]*i)
+			
+			# lr_global = max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*i))
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
-			stop_flag = False
-
+			print("lr: "+str(optimizer.param_groups[0]['lr']))
+			print("sigma: "+str(sigma_global))
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
-				lr_local = lr_global*math.exp(-kwargs["BETA"]*iter_no)
+				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
-				print("sigma_local "+str(sigma_local))
 				for b, batch in enumerate(data_loader):
 					neighbourhood_func = self.model.neighbourhood_batch(batch[0], radius=sigma_local)
 					target_dist = self.model.target_distance_batch(batch, radius=sigma_local)
@@ -245,17 +246,6 @@ class SOMTrainer():
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
-				
-				checkpoint_path= os.path.join(os.path.curdir,"checkpoint.pt")
-				torch.save({
-					'label_range': i, 
-					'epoch': iter_no,
-					'tot_epoch': kwargs["EPOCHS_PER_SUBSET"],
-					'model_state_dict': self.model.state_dict(),
-					'optimizer_state_dict': optimizer.state_dict(),
-					'loss': loss.item(),
-					}, checkpoint_path)
-					
 	
 				if self.wandb_log:
 					plotter = Plotter(self.model, self.clip_images)
@@ -265,6 +255,16 @@ class SOMTrainer():
 						"loss" : loss.item(),
 						#"local competence" : local_competence
 					})
+
+			scheduler.step()
+			
+			checkpoint_path= os.path.join(os.path.curdir,"checkpoint.pt")
+			torch.save({
+				'label_range': i, 
+				'model_state_dict': self.model.state_dict(),
+				'optimizer_state_dict': optimizer.state_dict(),
+				}, checkpoint_path)
+			
 				# with torch.no_grad():
 				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)
 				# 	print(local_competence)
