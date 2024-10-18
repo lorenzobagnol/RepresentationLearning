@@ -37,7 +37,21 @@ class MnistRunner(BaseRunner):
 		MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
 		MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
 	
-		target_points=self.generate_equally_distributed_points(10)
+		# target_points=self.generate_equally_distributed_points(10)
+		points = [
+            [ 3,  3],
+			[ 2, 10],
+			[ 3, 16],
+			[10,  3],
+			[ 7,  9],
+			[12, 10],
+			[ 9, 16],
+			[16,  3],
+			[17, 10],
+			[16, 16]
+        ]
+		random.shuffle(points)
+		target_points={k : torch.Tensor(v) for k,v in enumerate(points)}
 
 		return MNIST_train_subset, MNIST_val_subset, target_points
 
