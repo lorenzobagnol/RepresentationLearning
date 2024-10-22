@@ -231,7 +231,6 @@ class SOMTrainer():
 											shuffle=True,
 											)
 			
-			# lr_global = max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*i))
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
 			print("lr: "+str(optimizer.param_groups[0]['lr']))
 			print("sigma: "+str(sigma_global))
