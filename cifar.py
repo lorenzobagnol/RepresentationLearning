@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 import random
+import torchvision
 
 from utils.inputdata import InputData
 from utils.runner import BaseRunner
@@ -20,33 +21,41 @@ class CifarRunner(BaseRunner):
 	def create_dataset(self):
 		"""
 		"""
-		all_data = []
-		all_labels = []
-		data_path = "cifar-10-batches-py"
-
-
-		for file in os.listdir(data_path):
-			if file.startswith("data"):
-				file_path = os.path.join(data_path, file) 
-				with open(file_path, 'rb') as fo:
-					batch_dict = pickle.load(fo, encoding='bytes')
-					all_data.append(batch_dict[b'data'])
-					all_labels.extend(batch_dict[b'labels'])
-		combined_data = torch.Tensor(np.vstack(all_data))
-		combined_labels = torch.Tensor(all_labels)
-
 		# data in .data and labels in .targets
-		transformed_data = self.input_data.transform_dataset(combined_data)
-		cifar_train = torch.utils.data.TensorDataset(transformed_data,combined_labels)
-		cifar_val = None
-		cifar_train_subset= torch.utils.data.dataset.Subset(cifar_train,[i for i in range(10000)])
-		cifar_train.targets = torch.Tensor(combined_labels)
-		cifar_train_subset.targets=cifar_train.targets[0:10000]
-		cifar_val_subset= None
+		CIFAR_train = torchvision.datasets.CIFAR10(
+			root=os.path.curdir,
+			train=True,
+			download=True,
+			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
+		)
+		CIFAR_val = torchvision.datasets.CIFAR10(
+			root=os.path.curdir,
+			train=False,
+			download=True,
+			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
+		)
+		CIFAR_train_subset= torch.utils.data.dataset.Subset(CIFAR_train,[i for i in range(10000)])
+		CIFAR_train_subset.targets=torch.Tensor(CIFAR_train.targets[0:10000])
+		CIFAR_val_subset= torch.utils.data.dataset.Subset(CIFAR_val,[i for i in range(10000)])
+		CIFAR_val_subset.targets=torch.Tensor(CIFAR_val.targets[0:10000])	
 	
-		target_points=self.generate_equally_distributed_points(10)
+		# target_points=self.generate_equally_distributed_points(10)
+		points = [
+            [ 3,  3],
+			[ 2, 10],
+			[ 3, 16],
+			[10,  3],
+			[ 7,  9],
+			[12, 10],
+			[ 9, 16],
+			[16,  3],
+			[17, 10],
+			[16, 16]
+        ]
+		random.shuffle(points)
+		target_points={k : torch.Tensor(v) for k,v in enumerate(points)}
 
-		return cifar_train_subset, cifar_val_subset, target_points
+		return CIFAR_train_subset, CIFAR_val_subset, target_points
 
 
 

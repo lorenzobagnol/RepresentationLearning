@@ -232,8 +232,8 @@ class SOMTrainer():
 											)
 			
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
-			print("lr: "+str(optimizer.param_groups[0]['lr']))
-			print("sigma: "+str(sigma_global))
+			# print("lr: "+str(optimizer.param_groups[0]['lr']))
+			# print("sigma: "+str(sigma_global))
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)

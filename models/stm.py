@@ -62,7 +62,7 @@ class STM(SOM):
 
 		Args:
 			batch (Tuple[torch.Tensor]): A batch with labeled data obtained from a DataLoader.
-			it (int) Current iteration number.
+			radius (float): Variance of the gaussian.
 
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
@@ -81,9 +81,8 @@ class STM(SOM):
         Compute the neighborhood function for a batch of inputs.
 
         Args:
-            batch (torch.Tensor): Batch of input vectors. B x D where D = total dimension (image_dim*channels)
-			decay_rate (int): Decay rate for the learning rate.
-            it (int): Current iteration number.
+            batch (torch.Tensor): Batch of labeled input vectors. B x D where D = total dimension (image_dim*channels)
+			radius (float): Variance of the gaussian.
 
         Returns:
             torch.Tensor: Neighborhood function values.

@@ -59,7 +59,7 @@ input_data=InputData((28,28),1,"Unit")
 config = Config(
 	SEED=13,
     som_config=SOMConfig(M=20, N=20, SIGMA=10),
-    lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.01, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=3, LEARNING_RATE=0.001),
+    lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.005, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
     simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20),
     pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001),
     online_config=OnlineConfig(EPOCHS=1)

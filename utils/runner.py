@@ -13,7 +13,6 @@ from typing import Any, Union
 
 from models.som import SOM
 from models.stm import STM
-from models.stm_vieri import STMSTC
 from utils.trainer import SOMTrainer
 from utils.config import Config
 
