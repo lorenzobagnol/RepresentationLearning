@@ -2,6 +2,7 @@ import torchvision
 import torch
 import random
 import os
+import numpy as np
 
 from utils.inputdata import InputData
 from utils.runner import BaseRunner
@@ -37,18 +38,22 @@ class MnistRunner(BaseRunner):
 		MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
 	
 		# target_points=self.generate_equally_distributed_points(10)
-		points = [
-            [ 3,  3],
-			[ 2, 10],
-			[ 3, 16],
-			[10,  3],
-			[ 7,  9],
-			[12, 10],
-			[ 9, 16],
-			[16,  3],
-			[17, 10],
-			[16, 16]
-        ]
+		points = np.array(
+				[
+					[0.15, 0.17],
+					[0.12, 0.54],
+					[0.16, 0.84],
+					[0.50, 0.15],
+					[0.36, 0.45],
+					[0.62, 0.50],
+					[0.48, 0.82],
+					[0.83, 0.17],
+					[0.88, 0.50],
+					[0.83, 0.83],
+				]
+			)
+		points=np.int32(points*min(self.config.som_config.M, self.config.som_config.N))
+		points.tolist()
 		random.shuffle(points)
 		target_points={k : torch.Tensor(v) for k,v in enumerate(points)}
 
