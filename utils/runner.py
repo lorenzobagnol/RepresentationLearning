@@ -118,7 +118,5 @@ class BaseRunner(ABC):
 				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA)
 			case "stm":
 				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)
-			case "stmstc":
-				model = STMSTC(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)
 		self.select_training(model, dataset_train, dataset_val, args.wandb_log, args.training_mode)
 

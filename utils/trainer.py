@@ -107,8 +107,9 @@ class SOMTrainer():
 		print("\u2713 \n",flush=True)
 
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epoch"):
+			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for batch in data_loader:
-				neighbourhood_func = self.neighbourhood_batch(batch,  kwargs["DECAY_RATE"], iter_no)
+				neighbourhood_func = self.neighbourhood_batch(batch, sigma_local)
 				# update weights
 				new_weights = torch.matmul(neighbourhood_func.T, batch[0]) # (som_dim, batch_size)x(batch_size, input_dim) = (som_dim, input_dim)
 				norm = torch.sum(neighbourhood_func, 0) # som_dim
@@ -151,10 +152,11 @@ class SOMTrainer():
 		self.model.train()
 		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epochs", leave=True, position=0):
+			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for b, batch in enumerate(data_loader):
-				neighbourhood_func = self.model.neighbourhood_batch(batch, kwargs["DECAY_RATE"], iter_no)
+				neighbourhood_func = self.model.neighbourhood_batch(batch, sigma_local)
 				if isinstance(self.model, STM):
-					target_dist = self.model.target_distance_batch(batch, kwargs["DECAY_RATE"], iter_no)
+					target_dist = self.model.target_distance_batch(batch, sigma_local)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 				else:
 					weight_function = neighbourhood_func

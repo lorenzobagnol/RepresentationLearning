@@ -32,6 +32,7 @@ class SimpleBatchConfig(BaseConfig):
     """Simple batch training configuration."""
     EPOCHS: int
     BATCH_SIZE: int
+    BETA: float
 
 @dataclass
 class PytorchBatchConfig(BaseConfig):
@@ -39,6 +40,7 @@ class PytorchBatchConfig(BaseConfig):
     EPOCHS: int
     BATCH_SIZE: int
     LEARNING_RATE: float
+    BETA: float
 
 @dataclass
 class OnlineConfig(BaseConfig):
