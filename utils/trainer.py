@@ -108,7 +108,7 @@ class SOMTrainer():
 
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epoch"):
 			for batch in data_loader:
-				neighbourhood_func = self.neighbourhood_batch(batch[0],  kwargs["DECAY_RATE"], iter_no)
+				neighbourhood_func = self.neighbourhood_batch(batch,  kwargs["DECAY_RATE"], iter_no)
 				# update weights
 				new_weights = torch.matmul(neighbourhood_func.T, batch[0]) # (som_dim, batch_size)x(batch_size, input_dim) = (som_dim, input_dim)
 				norm = torch.sum(neighbourhood_func, 0) # som_dim
@@ -152,7 +152,7 @@ class SOMTrainer():
 		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epochs", leave=True, position=0):
 			for b, batch in enumerate(data_loader):
-				neighbourhood_func = self.model.neighbourhood_batch(batch[0], kwargs["DECAY_RATE"], iter_no)
+				neighbourhood_func = self.model.neighbourhood_batch(batch, kwargs["DECAY_RATE"], iter_no)
 				if isinstance(self.model, STM):
 					target_dist = self.model.target_distance_batch(batch, kwargs["DECAY_RATE"], iter_no)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
@@ -238,7 +238,7 @@ class SOMTrainer():
 				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				for b, batch in enumerate(data_loader):
-					neighbourhood_func = self.model.neighbourhood_batch(batch[0], radius=sigma_local)
+					neighbourhood_func = self.model.neighbourhood_batch(batch, radius=sigma_local)
 					target_dist = self.model.target_distance_batch(batch, radius=sigma_local)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
@@ -249,13 +249,13 @@ class SOMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 	
-				if self.wandb_log:
-					plotter = Plotter(self.model, self.clip_images)
-					pil_image = plotter.create_pil_image()
-					wandb.log({	
-						"weights": wandb.Image(pil_image),
-						"loss" : loss.item(),
-					})
+			if self.wandb_log:
+				plotter = Plotter(self.model, self.clip_images)
+				pil_image = plotter.create_pil_image()
+				wandb.log({	
+					"weights": wandb.Image(pil_image),
+					"loss" : loss.item(),
+				})
 
 			scheduler.step()
 
