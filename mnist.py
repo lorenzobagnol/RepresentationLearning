@@ -60,17 +60,74 @@ class MnistRunner(BaseRunner):
 		return MNIST_train_subset, MNIST_val_subset, target_points
 
 
-input_data=InputData((28,28),1,"Unit")
-config = Config(
-	SEED=13,
-    som_config=SOMConfig(M=20, N=20, SIGMA=10),
-    lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.005, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
-    simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
-    pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
-    online_config=OnlineConfig(EPOCHS=1)
-)
-random.seed(config.SEED)
-mnist_runner=MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
-mnist_runner.run()
+# input_data=InputData((28,28),1,"Unit")
+# config = Config(
+# 	SEED=13,
+#     som_config=SOMConfig(M=20, N=20, SIGMA=10),
+#     lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.005, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
+#     simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
+#     pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
+#     online_config=OnlineConfig(EPOCHS=1)
+# )
+# random.seed(config.SEED)
+# mnist_runner=MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
+# mnist_runner.run()
 
+
+
+
+
+
+
+import random
+from concurrent.futures import ProcessPoolExecutor
+from itertools import product
+
+def run_experiment(alpha, beta):
+    """
+    Function to run the experiment with a given configuration.
+    Args:
+        alpha, beta (float): Alpha and Beta values for LifeLongConfig.
+    
+    Returns:
+        str: Message indicating the experiment completed.
+    """
+    input_data = InputData((28, 28), 1, "Unit")
+
+    # Creating a specific config with varying parameters for alpha and beta
+    config = Config(
+        SEED=13,
+        som_config=SOMConfig(M=20, N=20, SIGMA=10),
+    	lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
+        simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
+        pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
+        online_config=OnlineConfig(EPOCHS=1)
+    )
+
+    random.seed(config.SEED)
+
+    # Running the experiment
+    mnist_runner = MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
+    mnist_runner.run()
+
+    return f"Experiment alpha={alpha}, beta={beta} completed."
+
+
+
+alphas = [5, 2, 1]  # 3 different alpha values
+betas = [2, 0.25, 0.1]  # 3 different beta values
+
+# Create 9 combinations of alpha and beta values
+param_combinations = list(product(alphas, betas))
+
+# Run experiments in parallel using ProcessPoolExecutor
+with ProcessPoolExecutor(max_workers=9) as executor:
+    futures = [
+        executor.submit(run_experiment, alpha, beta)
+        for (alpha, beta) in param_combinations
+    ]
+    
+    # Wait for all futures to complete and print results
+    for future in futures:
+        print(future.result())
 
