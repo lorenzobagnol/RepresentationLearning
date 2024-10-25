@@ -1,6 +1,7 @@
 import torch.utils
 import torch.utils.data
 from torch.utils.data import TensorDataset
+from torch import Tensor
 import torch
 import matplotlib.pyplot as plt
 from utils.inputdata import InputData
@@ -25,7 +26,7 @@ class BaseRunner(ABC):
 		self.input_data=input_data
 
 
-	def generate_equally_distributed_points(self, P: int):
+	def generate_equally_distributed_points(self, P: int) -> dict[int, Tensor]:
 		m=self.config.som_config.M
 		n=self.config.som_config.N
 		# Adjust M and N to exclude the borders (from 1 to M-2 and 1 to N-2)
