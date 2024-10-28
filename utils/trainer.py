@@ -240,13 +240,14 @@ class SOMTrainer():
 				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				for b, batch in enumerate(data_loader):
+					inputs, targets = batch[0].to(device), batch[1].to(device)
 					if kwargs["MODE"]=="STC":
-						neighbourhood_func = self.model.neighbourhood_batch_vieri(batch, radius=sigma_local)
+						weight_function = self.model.neighbourhood_batch_vieri(inputs, targets, radius=sigma_local)
 					else:
-						neighbourhood_func = self.model.neighbourhood_batch(batch, radius=sigma_local)
-					target_dist = self.model.target_distance_batch(batch, radius=sigma_local)
-					weight_function = torch.mul(neighbourhood_func, target_dist)
-					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
+						neighbourhood_func = self.model.neighbourhood_batch(inputs, radius=sigma_local)
+						target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
+						weight_function = torch.mul(neighbourhood_func, target_dist)
+					distance_matrix = inputs.unsqueeze(1).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) - self.model.weights.unsqueeze(0).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
 					loss = torch.mul(1/2*lr_local,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 

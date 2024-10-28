@@ -56,18 +56,18 @@ class STM(SOM):
 		return total_distance
 			
 	
-	def target_distance_batch(self, batch: Tuple[torch.Tensor], radius: float) -> torch.Tensor:
+	def target_distance_batch(self, targets: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
 		Computes the distance between the SOM (Self-Organizing Map) nodes and target points for a given batch of data.
 
 		Args:
-			batch (Tuple[torch.Tensor]): A batch with labeled data obtained from a DataLoader.
+			batch (torch.Tensor): A batch with data obtained from a DataLoader.
 			radius (float): Variance of the gaussian.
 
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[np.int32(batch[1])[i]] for i in range(batch[1].shape[0])]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1) # (batch_size, som_dim, 2)
 		target_distances_squares = torch.sum(torch.pow(target_distances, 2), 2) # (batch_size, som_dim)
@@ -76,7 +76,7 @@ class STM(SOM):
 		return target_dist_func
 
 
-	def neighbourhood_batch_vieri(self, batch: Tuple[torch.Tensor], radius: float) -> torch.Tensor:
+	def neighbourhood_batch_vieri(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
@@ -88,10 +88,10 @@ class STM(SOM):
             torch.Tensor: Neighborhood function values.
         """
 		# look for the best matching unit (BMU)
-		dists = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
 		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
 		# compute mask around the target point
-		target_loc=torch.stack([self.target_points[int(label)] for label in batch[1]]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
 		target_distances_squares = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
 		mask = torch.BoolTensor(target_distances_squares<radius) # (batch_size, som_dim)

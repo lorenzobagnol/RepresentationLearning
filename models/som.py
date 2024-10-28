@@ -53,7 +53,7 @@ class SOM(nn.Module, ABC):
 			to_return.append(self.locations[min_index])
 		return to_return
 
-	def neighbourhood_batch(self, batch_tuple: Tuple[torch.Tensor], radius: float) -> torch.Tensor:
+	def neighbourhood_batch(self, batch: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
@@ -66,7 +66,6 @@ class SOM(nn.Module, ABC):
             torch.Tensor: Neighborhood function values.
         """
 
-		batch=batch_tuple[0]
 		# look for the best matching unit (BMU)
 		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
 		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
