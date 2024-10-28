@@ -98,7 +98,7 @@ def run_experiment(alpha, beta):
     config = Config(
         SEED=13,
         som_config=SOMConfig(M=20, N=20, SIGMA=10),
-    	lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
+    	lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
         simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
         pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
         online_config=OnlineConfig(EPOCHS=1)
