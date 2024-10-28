@@ -46,8 +46,9 @@ class SOMTrainer():
 			print(f"\u2022 {key} = {value}")
 		print("\n\n\n")
 
-		wandb.config.update(kwargs)
-		wandb.config.update({"sigma": self.model.sigma})
+		if self.wandb_log:
+			wandb.config.update(kwargs)
+			wandb.config.update({"sigma": self.model.sigma})
 		
 		for it in range(kwargs["EPOCHS"]):
 			for i, el in tqdm(enumerate(dataset_train), f"epoch {it+1}", len(dataset_train)):
@@ -97,8 +98,9 @@ class SOMTrainer():
 			print(f"\u2022 {key} = {value}")
 		print("\n\n\n")
 
-		wandb.config.update(kwargs)
-		wandb.config.update({"sigma": self.model.sigma})
+		if self.wandb_log:
+			wandb.config.update(kwargs)
+			wandb.config.update({"sigma": self.model.sigma})
 
 		print("Creating a DataLoader object from dataset", end=" ",flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -140,8 +142,9 @@ class SOMTrainer():
 			print(f"\u2022 {key} = {value}")
 		print("\n\n\n")
 
-		wandb.config.update(kwargs)
-		wandb.config.update({"sigma": self.model.sigma})
+		if self.wandb_log:
+			wandb.config.update(kwargs)
+			wandb.config.update({"sigma": self.model.sigma})
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -199,8 +202,9 @@ class SOMTrainer():
 			print(f"\u2022 {key} = {value}")
 		print("\n\n\n")
 
-		wandb.config.update(kwargs)
-		wandb.config.update({"sigma": self.model.sigma})
+		if self.wandb_log:
+			wandb.config.update(kwargs)
+			wandb.config.update({"sigma": self.model.sigma})
 
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -227,7 +231,7 @@ class SOMTrainer():
 			data_loader = torch.utils.data.DataLoader(subset_lll,
 											batch_size=kwargs["BATCH_SIZE"],
 											shuffle=True,
-											).to(device)
+											)
 			
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
 			# print("lr: "+str(optimizer.param_groups[0]['lr']))

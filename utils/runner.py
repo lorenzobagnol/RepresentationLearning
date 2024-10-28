@@ -117,8 +117,8 @@ class BaseRunner(ABC):
 		dataset_train, dataset_val, target_points = self.create_dataset()
 		match args.model:
 			case "som":
-				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(device)
+				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA)#.to(device)
 			case "stm":
-				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(device)
+				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)#.to(device)
 		self.select_training(model, dataset_train, dataset_val, args.wandb_log, args.training_mode)
 

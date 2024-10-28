@@ -114,17 +114,15 @@ def run_experiment(alpha, beta):
 
 
 if __name__ == '__main__':
-	MNIST_train = torchvision.datasets.MNIST(
+	torchvision.datasets.MNIST(
 				root=os.path.curdir,
 				train=True,
 				download=True,
-				transform=torchvision.transforms.ToTensor()
 			)
-	MNIST_val = torchvision.datasets.MNIST(
+	torchvision.datasets.MNIST(
 		root=os.path.curdir,
 		train=False,
 		download=True,
-		transform=torchvision.transforms.ToTensor(),
 	)
 
 	alphas = [5, 2, 1]  # 3 different alpha values
