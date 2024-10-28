@@ -194,6 +194,7 @@ class SOMTrainer():
 		"""
 
 		print("\nSTM LifeLong learning with batch mode and pytorch optimizations is starting with hyper-parameters:")
+
 		for key, value in kwargs.items():
 			print(f"\u2022 {key} = {value}")
 		print("\n\n\n")
@@ -201,12 +202,7 @@ class SOMTrainer():
 		wandb.config.update(kwargs)
 		wandb.config.update({"sigma": self.model.sigma})
 
-		print("Creating a DataLoader object from dataset", end="     ", flush=True)
-		data_loader = torch.utils.data.DataLoader(dataset_train,
-											batch_size=kwargs["BATCH_SIZE"],
-											shuffle=True,)
-		print("\u2713 \n", flush=True)
-		print("\n\n\n")
+		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 		self.model.train()
 		
@@ -231,7 +227,7 @@ class SOMTrainer():
 			data_loader = torch.utils.data.DataLoader(subset_lll,
 											batch_size=kwargs["BATCH_SIZE"],
 											shuffle=True,
-											)
+											).to(device)
 			
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
 			# print("lr: "+str(optimizer.param_groups[0]['lr']))
@@ -240,7 +236,10 @@ class SOMTrainer():
 				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				for b, batch in enumerate(data_loader):
-					neighbourhood_func = self.model.neighbourhood_batch(batch, radius=sigma_local)
+					if kwargs["MODE"]=="STC":
+						neighbourhood_func = self.model.neighbourhood_batch_vieri(batch, radius=sigma_local)
+					else:
+						neighbourhood_func = self.model.neighbourhood_batch(batch, radius=sigma_local)
 					target_dist = self.model.target_distance_batch(batch, radius=sigma_local)
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
