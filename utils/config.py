@@ -26,6 +26,7 @@ class LifeLongConfig(BaseConfig):
     LR_GLOBAL_BASELINE: float
     SIGMA_BASELINE: float
     LEARNING_RATE: float
+    MODE: str
 
 @dataclass
 class SimpleBatchConfig(BaseConfig):
