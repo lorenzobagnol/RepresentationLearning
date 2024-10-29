@@ -2,7 +2,8 @@ import torchvision
 import torch
 import random
 import os
-import numpy as np
+import traceback
+import torch.multiprocessing as mp
 
 from utils.inputdata import InputData
 from utils.runner import Runner
@@ -65,27 +66,32 @@ def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
 	Returns:
 		str: Message indicating the experiment completed.
 	"""
+	try:
+		# Creating a specific config with varying parameters for alpha and beta
+		config = Config(
+			SEED=13,
+			som_config=SOMConfig(M=20, N=20, SIGMA=10),
+			lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
+			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
+			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
+			online_config=OnlineConfig(EPOCHS=1)
+		)
 
-	# Creating a specific config with varying parameters for alpha and beta
-	config = Config(
-		SEED=13,
-		som_config=SOMConfig(M=20, N=20, SIGMA=10),
-		lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
-		simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
-		pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
-		online_config=OnlineConfig(EPOCHS=1)
-	)
+		random.seed(config.SEED)
 
-	random.seed(config.SEED)
+		# Running the experiment
+		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
+		mnist_runner.run()
 
-	# Running the experiment
-	mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
-	mnist_runner.run()
-
-	return f"Experiment alpha={alpha}, beta={beta} completed."
+		return f"Experiment alpha={alpha}, beta={beta} completed."
+	except Exception as e:
+		error_message = f"Error in experiment alpha={alpha}, beta={beta}: {e}\n{traceback.format_exc()}"
+		print(error_message)
+		return error_message
 
 
 if __name__ == '__main__':
+	mp.set_start_method('spawn', force=True)
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 

@@ -18,13 +18,23 @@ from utils.config import Config
 
 class Runner():
 
-	def __init__(self, config: Config, dataset_name: str, input_data: InputData, train_dataset: torch.utils.data.Dataset, val_dataset: torch.utils.data.Dataset):
+	def __init__(self, config: Config, dataset_name: str, input_data: InputData, train_dataset: torch.utils.data.Dataset, val_dataset: torch.utils.data.Dataset, model: SOM = None, training_mode: str= None, wandb: bool= None):
 		super().__init__()
 		self.config=config
 		self.dataset_name=dataset_name
 		self.input_data=input_data
 		self.dataset_train=train_dataset
 		self.dataset_val=val_dataset
+		if (wandb==None or training_mode==None or model==None):
+			args = self.parse_arguments()
+			self.wandb_log=args.wandb_log
+			self.training_mode=args.training_mode
+			self.model_name=args.model
+		else:
+			self.wandb_log=wandb
+			self.training_mode=training_mode
+			self.model_name=model
+
 
 	def generate_equally_distributed_points(self, P: int) -> dict[int, Tensor]:
 		m=self.config.som_config.M
@@ -81,8 +91,8 @@ class Runner():
 			argparse.Namespace: Parsed command line arguments.
 		"""
 		parser = argparse.ArgumentParser(
-						prog='Color SOM/STM training',
-						description='this script can train a SOM or a STM with MNIST dataset',
+						prog='SOM/STM training',
+						description='this script can train a SOM or a STM',
 						epilog='Text at the bottom of help')
 		parser.add_argument("--model", dest='model', help="The model to run. Could be 'som', 'stm' or 'AE'", type=str, required=True)
 		parser.add_argument("--training", dest='training_mode', help="The training mode. Could be 'simple_batch', 'online', 'pytorch_batch', 'LifeLong'", type=str, default=None)
@@ -90,7 +100,7 @@ class Runner():
 		return parser.parse_args()
 
 
-	def select_training(self, model: Union[SOM, STM], wandb_log: bool, train_mode: str = None):
+	def select_training(self, model: Union[SOM, STM]):
 		"""
 		Train the SOM based on the specified mode.
 		
@@ -100,7 +110,7 @@ class Runner():
 			train_mode (str): Training mode, either 'simple_batch', 'pytorch_batch', or 'online'.
 		"""
 		
-		trainer = SOMTrainer(model, wandb_log, True)
+		trainer = SOMTrainer(model, self.wandb_log, True)
 		if train_mode==None:
 			while True:
 				train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))
@@ -109,9 +119,9 @@ class Runner():
 		if train_mode not in trainer.available_training_modes():
 			print("wrong training mode selected")
 		model_name="STM" if type(model) is STM else "SOM"
-		if wandb_log:
+		if self.wandb_log:
 			wandb.init(project=model_name+'-'+self.dataset_name, job_type= train_mode)
-		print("You have choose to train a SOM model with "+train_mode+" mode.")
+		print("You have choose to train a "+model_name+" model with "+train_mode+" mode.")
 		training_function = getattr(trainer, "train_"+train_mode)
 		match train_mode:
 			case "simple_batch":
@@ -132,12 +142,13 @@ class Runner():
 		np.random.seed(self.config.SEED)
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-		args = self.parse_arguments()
-		match args.model:
+
+		
+		match self.model_name:
 			case "som":
 				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(device)
 			case "stm":
 				target_points=self.generate_equally_distributed_points_v2()
 				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(device)
-		self.select_training(model, args.wandb_log, args.training_mode)
+		self.select_training(model)
 
