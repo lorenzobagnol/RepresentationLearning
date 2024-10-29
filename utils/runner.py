@@ -139,5 +139,5 @@ class Runner():
 			case "stm":
 				target_points=self.generate_equally_distributed_points_v2()
 				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(device)
-		self.select_training(model, self.dataset_train, self.dataset_val, args.wandb_log, args.training_mode)
+		self.select_training(model, args.wandb_log, args.training_mode)
 
