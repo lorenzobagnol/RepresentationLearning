@@ -92,7 +92,7 @@ def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
 
 if __name__ == '__main__':
 
-	#mp.set_start_method('spawn', force=True)
+	mp.set_start_method('spawn', force=True)
 
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
