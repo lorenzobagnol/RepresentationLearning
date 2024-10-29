@@ -104,7 +104,7 @@ if __name__ == '__main__':
 	param_combinations = list(product(alphas, betas))
 
 	# Run experiments in parallel using ProcessPoolExecutor
-	with ProcessPoolExecutor(max_workers=2) as executor:
+	with ProcessPoolExecutor(max_workers=1) as executor:
 		futures = [
 			executor.submit(run_experiment, alpha, beta, input_data, dataset_train, dataset_val)
 			for (alpha, beta) in param_combinations
