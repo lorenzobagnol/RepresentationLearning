@@ -100,7 +100,6 @@ class SOMTrainer():
 
 		if self.wandb_log:
 			wandb.config.update(kwargs)
-			wandb.config.update({"sigma": self.model.sigma})
 
 		print("Creating a DataLoader object from dataset", end=" ",flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -204,7 +203,6 @@ class SOMTrainer():
 
 		if self.wandb_log:
 			wandb.config.update(kwargs)
-			wandb.config.update({"sigma": self.model.sigma})
 
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
