@@ -5,59 +5,31 @@ import os
 import numpy as np
 
 from utils.inputdata import InputData
-from utils.runner import BaseRunner
+from utils.runner import Runner
 from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig
-
-
-
-
-class MnistRunner(BaseRunner):
-
-	def __init__(self, config: Config, dataset_name: str, input_data: InputData):
-		super().__init__(config=config, dataset_name=dataset_name, input_data=input_data)
 		
-	def create_dataset(self):
-		"""
-		"""
-		# data in .data and labels in .targets
-		MNIST_train = torchvision.datasets.MNIST(
-			root=os.path.curdir,
-			train=True,
-			download=True,
-			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
-		)
-		MNIST_val = torchvision.datasets.MNIST(
-			root=os.path.curdir,
-			train=False,
-			download=True,
-			transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
-		)
-		MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(10000)])
-		MNIST_train_subset.targets=MNIST_train.targets[0:10000]
-		MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
-		MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
-	
-		# target_points=self.generate_equally_distributed_points(10)
-		points = np.array(
-				[
-					[0.15, 0.17],
-					[0.12, 0.54],
-					[0.16, 0.84],
-					[0.50, 0.15],
-					[0.36, 0.45],
-					[0.62, 0.50],
-					[0.48, 0.82],
-					[0.83, 0.17],
-					[0.88, 0.50],
-					[0.83, 0.83],
-				]
-			)
-		points=np.int32(points*min(self.config.som_config.M, self.config.som_config.N))
-		points.tolist()
-		random.shuffle(points)
-		target_points={k : torch.Tensor(v) for k,v in enumerate(points)}
+def create_dataset(input_data: InputData):
+	"""
+	"""
+	# data in .data and labels in .targets
+	MNIST_train = torchvision.datasets.MNIST(
+		root=os.path.curdir,
+		train=True,
+		download=True,
+		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]),
+	)
+	MNIST_val = torchvision.datasets.MNIST(
+		root=os.path.curdir,
+		train=False,
+		download=True,
+		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]),
+	)
+	MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(10000)])
+	MNIST_train_subset.targets=MNIST_train.targets[0:10000]
+	MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
+	MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
 
-		return MNIST_train_subset, MNIST_val_subset, target_points
+	return MNIST_train_subset, MNIST_val_subset
 
 
 # input_data=InputData((28,28),1,"Unit")
@@ -70,7 +42,8 @@ class MnistRunner(BaseRunner):
 #     online_config=OnlineConfig(EPOCHS=1)
 # )
 # random.seed(config.SEED)
-# mnist_runner=MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
+# dataset_train, dataset_val = create_dataset()
+# mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
 # mnist_runner.run()
 
 
@@ -83,47 +56,38 @@ import random
 from concurrent.futures import ProcessPoolExecutor
 from itertools import product
 
-def run_experiment(alpha, beta):
-    """
-    Function to run the experiment with a given configuration.
-    Args:
-        alpha, beta (float): Alpha and Beta values for LifeLongConfig.
-    
-    Returns:
-        str: Message indicating the experiment completed.
-    """
-    input_data = InputData((28, 28), 1, "Unit")
+def run_experiment(alpha, beta, dataset_train, dataset_val):
+	"""
+	Function to run the experiment with a given configuration.
+	Args:
+		alpha, beta (float): Alpha and Beta values for LifeLongConfig.
+	
+	Returns:
+		str: Message indicating the experiment completed.
+	"""
+	input_data = InputData((28, 28), 1, "Unit")
 
-    # Creating a specific config with varying parameters for alpha and beta
-    config = Config(
-        SEED=13,
-        som_config=SOMConfig(M=20, N=20, SIGMA=10),
-    	lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
-        simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
-        pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
-        online_config=OnlineConfig(EPOCHS=1)
-    )
+	# Creating a specific config with varying parameters for alpha and beta
+	config = Config(
+		SEED=13,
+		som_config=SOMConfig(M=20, N=20, SIGMA=10),
+		lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
+		simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
+		pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
+		online_config=OnlineConfig(EPOCHS=1)
+	)
 
-    random.seed(config.SEED)
+	random.seed(config.SEED)
 
-    # Running the experiment
-    mnist_runner = MnistRunner(config=config, dataset_name="MNIST", input_data=input_data)
-    mnist_runner.run()
+	# Running the experiment
+	mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
+	mnist_runner.run()
 
-    return f"Experiment alpha={alpha}, beta={beta} completed."
+	return f"Experiment alpha={alpha}, beta={beta} completed."
 
 
 if __name__ == '__main__':
-	torchvision.datasets.MNIST(
-				root=os.path.curdir,
-				train=True,
-				download=True,
-			)
-	torchvision.datasets.MNIST(
-		root=os.path.curdir,
-		train=False,
-		download=True,
-	)
+	dataset_train, dataset_val = create_dataset()
 
 	alphas = [5, 2, 1]  # 3 different alpha values
 	betas = [2, 0.25, 0.1]  # 3 different beta values
@@ -134,7 +98,7 @@ if __name__ == '__main__':
 	# Run experiments in parallel using ProcessPoolExecutor
 	with ProcessPoolExecutor(max_workers=9) as executor:
 		futures = [
-			executor.submit(run_experiment, alpha, beta)
+			executor.submit(run_experiment, alpha, beta, dataset_train, dataset_val)
 			for (alpha, beta) in param_combinations
 		]
 		

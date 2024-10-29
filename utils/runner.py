@@ -3,13 +3,12 @@ import torch.utils.data
 from torch.utils.data import TensorDataset
 from torch import Tensor
 import torch
-import matplotlib.pyplot as plt
+import numpy as np
 from utils.inputdata import InputData
 import argparse
 import wandb
 import random
 import math
-from abc import ABC, abstractmethod
 from typing import Any, Union
 
 from models.som import SOM
@@ -17,14 +16,15 @@ from models.stm import STM
 from utils.trainer import SOMTrainer
 from utils.config import Config
 
-class BaseRunner(ABC):
+class Runner():
 
-	def __init__(self, config: Config, dataset_name: str, input_data: InputData):
+	def __init__(self, config: Config, dataset_name: str, input_data: InputData, train_dataset: torch.utils.data.Dataset, val_dataset: torch.utils.data.Dataset):
 		super().__init__()
 		self.config=config
 		self.dataset_name=dataset_name
 		self.input_data=input_data
-
+		self.dataset_train=train_dataset
+		self.dataset_val=val_dataset
 
 	def generate_equally_distributed_points(self, P: int) -> dict[int, Tensor]:
 		m=self.config.som_config.M
@@ -51,6 +51,27 @@ class BaseRunner(ABC):
 		points = [(x, y) for x in x_coords for y in y_coords]
 		dict_points={k : torch.Tensor(v) for k,v in enumerate(points[:P])}
 		return dict_points
+	
+	def generate_equally_distributed_points_v2(self, P: int=None) -> dict[int, Tensor]:
+		points = np.array(
+				[
+					[0.15, 0.17],
+					[0.12, 0.54],
+					[0.16, 0.84],
+					[0.50, 0.15],
+					[0.36, 0.45],
+					[0.62, 0.50],
+					[0.48, 0.82],
+					[0.83, 0.17],
+					[0.88, 0.50],
+					[0.83, 0.83],
+				]
+			)
+		points=np.int32(points*min(self.config.som_config.M, self.config.som_config.N))
+		points.tolist()
+		random.shuffle(points)
+		dict_points={k : torch.Tensor(v) for k,v in enumerate(points)}
+		return dict_points
 
 	def parse_arguments(self):
 		"""
@@ -67,12 +88,9 @@ class BaseRunner(ABC):
 		parser.add_argument("--training", dest='training_mode', help="The training mode. Could be 'simple_batch', 'online', 'pytorch_batch', 'LifeLong'", type=str, default=None)
 		parser.add_argument("--log", dest='wandb_log', help="Add '--log' to log in wandb.", action='store_true')
 		return parser.parse_args()
-	
-	@abstractmethod
-	def create_dataset(self) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset, dict[int, torch.Tensor]]:
-		pass
 
-	def select_training(self, model: Union[SOM, STM], dataset_train: TensorDataset, dataset_val: TensorDataset, wandb_log: bool, train_mode: str = None):
+
+	def select_training(self, model: Union[SOM, STM], wandb_log: bool, train_mode: str = None):
 		"""
 		Train the SOM based on the specified mode.
 		
@@ -97,13 +115,13 @@ class BaseRunner(ABC):
 		training_function = getattr(trainer, "train_"+train_mode)
 		match train_mode:
 			case "simple_batch":
-				training_function(dataset_train, dataset_val, **self.config.simple_batch_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict())
 			case "online":
-				training_function(dataset_train, dataset_val, **self.config.online_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.online_config.to_dict())
 			case "pytorch_batch":
-				training_function(dataset_train, dataset_val, **self.config.pytorch_batch_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict())
 			case "LifeLong":
-				training_function(dataset_train, dataset_val, **self.config.lifelong_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict())
 
 	def run(self):
 		"""
@@ -111,14 +129,15 @@ class BaseRunner(ABC):
 		"""
 		torch.manual_seed(self.config.SEED)
 		random.seed(self.config.SEED)
+		np.random.seed(self.config.SEED)
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 		args = self.parse_arguments()
-		dataset_train, dataset_val, target_points = self.create_dataset()
 		match args.model:
 			case "som":
-				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA)#.to(device)
+				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(device)
 			case "stm":
-				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA)#.to(device)
-		self.select_training(model, dataset_train, dataset_val, args.wandb_log, args.training_mode)
+				target_points=self.generate_equally_distributed_points_v2()
+				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(device)
+		self.select_training(model, self.dataset_train, self.dataset_val, args.wandb_log, args.training_mode)
 
