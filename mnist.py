@@ -42,7 +42,7 @@ def create_dataset(input_data: InputData):
 #     online_config=OnlineConfig(EPOCHS=1)
 # )
 # random.seed(config.SEED)
-# dataset_train, dataset_val = create_dataset()
+# dataset_train, dataset_val = create_dataset(input_data=input_data)
 # mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
 # mnist_runner.run()
 
@@ -56,7 +56,7 @@ import random
 from concurrent.futures import ProcessPoolExecutor
 from itertools import product
 
-def run_experiment(alpha, beta, dataset_train, dataset_val):
+def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
 	"""
 	Function to run the experiment with a given configuration.
 	Args:
@@ -65,7 +65,6 @@ def run_experiment(alpha, beta, dataset_train, dataset_val):
 	Returns:
 		str: Message indicating the experiment completed.
 	"""
-	input_data = InputData((28, 28), 1, "Unit")
 
 	# Creating a specific config with varying parameters for alpha and beta
 	config = Config(
@@ -87,7 +86,8 @@ def run_experiment(alpha, beta, dataset_train, dataset_val):
 
 
 if __name__ == '__main__':
-	dataset_train, dataset_val = create_dataset()
+	input_data = InputData((28, 28), 1, "Unit")
+	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
 	alphas = [5, 2, 1]  # 3 different alpha values
 	betas = [2, 0.25, 0.1]  # 3 different beta values
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 	# Run experiments in parallel using ProcessPoolExecutor
 	with ProcessPoolExecutor(max_workers=9) as executor:
 		futures = [
-			executor.submit(run_experiment, alpha, beta, dataset_train, dataset_val)
+			executor.submit(run_experiment, alpha, beta, input_data, dataset_train, dataset_val)
 			for (alpha, beta) in param_combinations
 		]
 		

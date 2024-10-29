@@ -11,7 +11,7 @@ from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfi
 
 
 
-def create_dataset(self):
+def create_dataset():
 	"""
 	"""
 	# data in .data and labels in .targets
@@ -19,13 +19,13 @@ def create_dataset(self):
 		root=os.path.curdir,
 		train=True,
 		download=True,
-		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
+		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]),
 	)
 	CIFAR_val = torchvision.datasets.CIFAR10(
 		root=os.path.curdir,
 		train=False,
 		download=True,
-		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]),
+		transform=torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]),
 	)
 	CIFAR_train_subset= torch.utils.data.dataset.Subset(CIFAR_train,[i for i in range(10000)])
 	CIFAR_train_subset.targets=torch.Tensor(CIFAR_train.targets[0:10000])
@@ -46,7 +46,7 @@ config = Config(
     online_config=OnlineConfig(EPOCHS=1)
 )
 random.seed(config.SEED)
-dataset_train, dataset_val = create_dataset()
+dataset_train, dataset_val = create_dataset(input_data=input_data)
 cifar_runner=Runner(config=config, dataset_name="CIFAR", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
 cifar_runner.run()
 

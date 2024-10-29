@@ -7,7 +7,7 @@ from utils.runner import Runner
 from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig
 
 
-def create_dataset(self):
+def create_dataset():
 	"""
 	Create a dataset of RGB colors.
 	
