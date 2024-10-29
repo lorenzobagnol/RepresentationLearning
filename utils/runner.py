@@ -111,19 +111,21 @@ class Runner():
 		"""
 		
 		trainer = SOMTrainer(model, self.wandb_log, True)
-		if train_mode==None:
+		if self.training_mode==None:
 			while True:
 				train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))
 				if train_mode in trainer.available_training_modes():
+					self.training_mode=train_mode
 					break
-		if train_mode not in trainer.available_training_modes():
+		if self.training_mode not in trainer.available_training_modes():
 			print("wrong training mode selected")
+			return
 		model_name="STM" if type(model) is STM else "SOM"
 		if self.wandb_log:
-			wandb.init(project=model_name+'-'+self.dataset_name, job_type= train_mode)
-		print("You have choose to train a "+model_name+" model with "+train_mode+" mode.")
-		training_function = getattr(trainer, "train_"+train_mode)
-		match train_mode:
+			wandb.init(project=model_name+'-'+self.dataset_name, job_type= self.training_mode)
+		print("You have choose to train a "+model_name+" model with "+self.training_mode+" mode.")
+		training_function = getattr(trainer, "train_"+self.training_mode)
+		match self.training_mode:
 			case "simple_batch":
 				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict())
 			case "online":
@@ -132,6 +134,7 @@ class Runner():
 				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict())
 			case "LifeLong":
 				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict())
+		return
 
 	def run(self):
 		"""
