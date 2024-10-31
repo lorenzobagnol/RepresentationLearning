@@ -98,7 +98,7 @@ if __name__ == '__main__':
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
 	alphas = [5, 2, 1]  # 3 different alpha values
-	betas = [2, 0.25, 0.1]  # 3 different beta values
+	betas = [0.005, 0.01, 0.02]  # 3 different beta values
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(alphas, betas))
