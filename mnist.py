@@ -56,7 +56,7 @@ def create_dataset(input_data: InputData):
 
 
 
-def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
+def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_val):
 	"""
 	Function to run the experiment with a given configuration.
 	Args:
@@ -70,7 +70,7 @@ def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=""),
+			lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001, MODE=vieri_mode),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1)
@@ -98,15 +98,16 @@ if __name__ == '__main__':
 
 	alphas = [5, 2, 1]  # 3 different alpha values
 	betas = [0.005, 0.01, 0.02]  # 3 different beta values
+	vieri_modes = ["", "STC"]
 
 	# Create 9 combinations of alpha and beta values
-	param_combinations = list(product(alphas, betas))
+	param_combinations = list(product(alphas, betas, vieri_modes))
 
 	# Run experiments in parallel using ProcessPoolExecutor
 	with ProcessPoolExecutor(max_workers=1) as executor:
 		futures = [
-			executor.submit(run_experiment, alpha, beta, input_data, dataset_train, dataset_val)
-			for (alpha, beta) in param_combinations
+			executor.submit(run_experiment, alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
+			for (alpha, beta, vieri_mode) in param_combinations
 		]
 		
 		# Wait for all futures to complete and print results
