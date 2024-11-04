@@ -1,6 +1,8 @@
+import random
+from concurrent.futures import ProcessPoolExecutor
+from itertools import product
 import torchvision
 import torch
-import random
 import os
 import traceback
 import torch.multiprocessing as mp
@@ -53,9 +55,6 @@ def create_dataset(input_data: InputData):
 
 
 
-import random
-from concurrent.futures import ProcessPoolExecutor
-from itertools import product
 
 def run_experiment(alpha, beta, input_data, dataset_train, dataset_val):
 	"""

@@ -235,7 +235,7 @@ class SOMTrainer():
 			# print("lr: "+str(optimizer.param_groups[0]['lr']))
 			# print("sigma: "+str(sigma_global))
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
-				lr_local = math.exp(-kwargs["BETA"]*iter_no) # *lr_global
+				lr_local = math.exp(-kwargs["BETA"]*iter_no)
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				for b, batch in enumerate(data_loader):
 					inputs, targets = batch[0].to(device), batch[1].to(device)
@@ -247,19 +247,20 @@ class SOMTrainer():
 						weight_function = torch.mul(neighbourhood_func, target_dist)
 					distance_matrix = inputs.unsqueeze(1).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) - self.model.weights.unsqueeze(0).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
-					loss = torch.mul(1/2*lr_local,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
+					if b==len(data_loader)-1 and self.wandb_log:
+						plotter = Plotter(self.model, self.clip_images)
+						pil_image = plotter.create_pil_image()
+						wandb.log({	
+							"weights": wandb.Image(pil_image),
+							"loss" : loss.item(),
+						})
+
+					loss = torch.mul(lr_local, loss)
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
-	
-			if self.wandb_log:
-				plotter = Plotter(self.model, self.clip_images)
-				pil_image = plotter.create_pil_image()
-				wandb.log({	
-					"weights": wandb.Image(pil_image),
-					"loss" : loss.item(),
-				})
 
 			scheduler.step()
 
