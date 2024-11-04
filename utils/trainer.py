@@ -235,6 +235,7 @@ class SOMTrainer():
 			# print("lr: "+str(optimizer.param_groups[0]['lr']))
 			# print("sigma: "+str(sigma_global))
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
+				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
 				sigma_local = sigma_global*math.exp(-kwargs["BETA"]*iter_no)
 				for b, batch in enumerate(data_loader):
@@ -250,12 +251,17 @@ class SOMTrainer():
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 					if b==len(data_loader)-1 and self.wandb_log:
-						plotter = Plotter(self.model, self.clip_images)
-						pil_image = plotter.create_pil_image()
-						wandb.log({	
-							"weights": wandb.Image(pil_image),
-							"loss" : loss.item(),
-						})
+						if log_flag:
+							plotter = Plotter(self.model, self.clip_images)
+							pil_image = plotter.create_pil_image()
+							wandb.log({	
+								"weights": wandb.Image(pil_image),
+								"loss" : loss.item(),
+							})
+						else:
+							wandb.log({	
+								"loss" : loss.item(),
+							})
 
 					loss = torch.mul(lr_local, loss)
 					loss.backward()
