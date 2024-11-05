@@ -91,7 +91,8 @@ def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_v
 
 if __name__ == '__main__':
 
-	mp.set_start_method('spawn', force=True)
+	# if using more than 1 worker, should use spawn beacuse of cuda compatibility
+	# mp.set_start_method('spawn', force=True)
 
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
