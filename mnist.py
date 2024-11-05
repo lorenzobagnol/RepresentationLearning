@@ -91,7 +91,7 @@ def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_v
 
 if __name__ == '__main__':
 
-	# if using more than 1 worker, should use spawn beacuse of cuda compatibility
+	# use this line if using ProcessPoolExecutor
 	# mp.set_start_method('spawn', force=True)
 
 	input_data = InputData((28, 28), 1, "Unit")
@@ -104,14 +104,17 @@ if __name__ == '__main__':
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(alphas, betas, vieri_modes))
 
-	# Run experiments in parallel using ProcessPoolExecutor
-	with ProcessPoolExecutor(max_workers=1) as executor:
-		futures = [
-			executor.submit(run_experiment, alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
-			for (alpha, beta, vieri_mode) in param_combinations
-		]
+	# # Run experiments in parallel using ProcessPoolExecutor
+	# with ProcessPoolExecutor(max_workers=1) as executor:
+	# 	futures = [
+	# 		executor.submit(run_experiment, alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
+	# 		for (alpha, beta, vieri_mode) in param_combinations
+	# 	]
 		
-		# Wait for all futures to complete and print results
-		for future in futures:
-			print(future.result())
+	# 	# Wait for all futures to complete and print results
+	# 	for future in futures:
+	# 		print(future.result())
+
+	for (alpha, beta, vieri_mode) in param_combinations:
+		run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
 
