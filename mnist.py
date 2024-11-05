@@ -91,8 +91,6 @@ def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_v
 
 if __name__ == '__main__':
 
-	# use this line if using ProcessPoolExecutor
-	# mp.set_start_method('spawn', force=True)
 
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
@@ -104,6 +102,8 @@ if __name__ == '__main__':
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(alphas, betas, vieri_modes))
 
+	# # use this line if using ProcessPoolExecutor
+	# mp.set_start_method('spawn', force=True)
 	# # Run experiments in parallel using ProcessPoolExecutor
 	# with ProcessPoolExecutor(max_workers=1) as executor:
 	# 	futures = [

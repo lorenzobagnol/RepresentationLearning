@@ -270,7 +270,7 @@ class SOMTrainer():
 
 			scheduler.step()
 
-			checkpoint_path= os.path.join(os.path.curdir,"checkpoint.pt")
+			checkpoint_path= os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
 			torch.save({
 				'label_range': i, 
 				'model_state_dict': self.model.state_dict(),
