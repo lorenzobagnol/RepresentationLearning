@@ -103,18 +103,18 @@ if __name__ == '__main__':
 	param_combinations = list(product(alphas, betas, vieri_modes))
 
 	# # use this line if using ProcessPoolExecutor
-	# mp.set_start_method('spawn', force=True)
-	# # Run experiments in parallel using ProcessPoolExecutor
-	# with ProcessPoolExecutor(max_workers=1) as executor:
-	# 	futures = [
-	# 		executor.submit(run_experiment, alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
-	# 		for (alpha, beta, vieri_mode) in param_combinations
-	# 	]
+	mp.set_start_method('spawn', force=True)
+	# Run experiments in parallel using ProcessPoolExecutor
+	with ProcessPoolExecutor(max_workers=1) as executor:
+		futures = [
+			executor.submit(run_experiment, alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
+			for (alpha, beta, vieri_mode) in param_combinations
+		]
 		
-	# 	# Wait for all futures to complete and print results
-	# 	for future in futures:
-	# 		print(future.result())
+		# Wait for all futures to complete and print results
+		for future in futures:
+			print(future.result())
 
-	for (alpha, beta, vieri_mode) in param_combinations:
-		run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
+	# for (alpha, beta, vieri_mode) in param_combinations:
+	# 	run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_val)
 
