@@ -70,7 +70,7 @@ def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_v
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.001, MODE=vieri_mode),
+			lifelong_config=LifeLongConfig(ALPHA=alpha, BETA=beta, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1, LEARNING_RATE=0.001, MODE=vieri_mode),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1)
