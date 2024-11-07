@@ -269,13 +269,13 @@ class SOMTrainer():
 					optimizer.zero_grad()
 
 			scheduler.step()
-
-			checkpoint_path= os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
-			torch.save({
-				'label_range': i, 
-				'model_state_dict': self.model.state_dict(),
-				'optimizer_state_dict': optimizer.state_dict(),
-				}, checkpoint_path)
+			# # not found checkpoint folder in server
+			# checkpoint_path = os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
+			# torch.save({
+			# 	'label_range': i, 
+			# 	'model_state_dict': self.model.state_dict(),
+			# 	'optimizer_state_dict': optimizer.state_dict(),
+			# 	}, checkpoint_path)
 			
 				# with torch.no_grad():
 				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)
