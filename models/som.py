@@ -58,7 +58,7 @@ class SOM(nn.Module, ABC):
         Compute the neighborhood function for a batch of inputs.
 
         Args:
-            batch (Tuple[torch.Tensor]): Batch of labeled input vectors. B x D where D = total dimension (image_dim*channels)
+            batch (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
 			decay_rate (int): Decay rate for the learning rate.
             it (int): Current iteration number.
 
@@ -78,3 +78,21 @@ class SOM(nn.Module, ABC):
 		neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, radius**2))) # (batch_size, som_dim)
 		return neighbourhood_func
 
+	def forward(self, batch: torch.Tensor) -> torch.Tensor:
+		"""
+        Compute the Best Matching Unit for a batch of inputs.
+
+        Args:
+            batch (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
+
+        Returns:
+            torch.Tensor: Best Matching Unit for the input batch B x 2
+        """
+
+		# look for the best matching unit (BMU)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+		_, bmu_indices = torch.min(dists, 1) # som_dim
+		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
+
+		return bmu_loc
