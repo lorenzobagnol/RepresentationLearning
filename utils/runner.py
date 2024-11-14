@@ -145,8 +145,6 @@ class Runner():
 		np.random.seed(self.config.SEED)
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-		
 		match self.model_name:
 			case "som":
 				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(device)

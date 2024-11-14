@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 # Define alphas and betas
 alphas = [5, 2, 1]
 betas = [0.005, 0.01, 0.02]
+mode = ""
+sigma_baseline = 1
 
 # Initialize API
 api = wandb.Api()
@@ -14,58 +16,68 @@ api = wandb.Api()
 entity = "replearn"
 project = "STM-MNIST"
 
-# Create a 3x3 grid of subplots for loss curves
-fig, axes = plt.subplots(len(alphas), len(betas), figsize=(12, 12), sharex=True, sharey=True)
-fig.suptitle("Loss Curves for Different Alpha and Beta Values")
+# # Create a 3x3 grid of subplots for loss curves
+# fig, axes = plt.subplots(len(alphas), len(betas), figsize=(12, 12), sharex=True, sharey=True)
+# if mode == "":
+#     fig.suptitle("Loss Curves for Different Alpha and Beta Values")
+# else:
+#     fig.suptitle("Loss Curves for Different Alpha and Beta Values (Vieri Algorithm)")
 
-# Iterate over alphas and betas to populate each subplot
-for i, alpha in enumerate(alphas):
-    for j, beta in enumerate(betas):
-        # Define filters for current alpha and beta
-        filters = {
-            "config.BETA": beta,
-            "config.ALPHA": alpha,
-            "config.MODE": "",
-            "state": "finished"
-        }
+# # Iterate over alphas and betas to populate each subplot
+# for i, alpha in enumerate(alphas):
+#     for j, beta in enumerate(betas):
+#         # Define filters for current alpha and beta
+#         filters = {
+#             "config.BETA": beta,
+#             "config.ALPHA": alpha,
+#             "config.MODE": mode,
+#             "config.SIGMA_BASELINE": sigma_baseline,
+#             "state": "finished"
+#         }
         
-        # Fetch the runs that match the filters
-        runs = api.runs(
-            path=f"{entity}/{project}",
-            filters=filters,
-            order="-created_at"
-        )
+#         # Fetch the runs that match the filters
+#         runs = api.runs(
+#             path=f"{entity}/{project}",
+#             filters=filters,
+#             order="-created_at"
+#         )
         
-        # Use only the first run that matches the filters
-        for run in runs:
-            # Collect loss data
-            history_losses = run.scan_history(keys=["loss"], page_size=1000, min_step=0, max_step=2000)
-            losses = [row["loss"] for row in history_losses]  # Loss values
-            steps = [i for i in range(len(losses))]  # Step numbers
+#         # Use only the first run that matches the filters
+#         for run in runs:
+#             # Collect loss data
+#             history_losses = run.scan_history(keys=["loss"], page_size=1000, min_step=0, max_step=2000)
+#             losses = [row["loss"] for row in history_losses]  # Loss values
+#             steps = [i for i in range(len(losses))]  # Step numbers
             
-            # Plot loss on the respective subplot
-            ax = axes[i, j]
-            ax.plot(steps, losses, label=f"alpha={alpha}, beta={beta}")
-            ax.set_title(f"alpha={alpha}, beta={beta}")
-            ax.set_xlabel("Step")
-            ax.set_ylabel("Loss")
-            ax.grid(True)
+#             # Plot loss on the respective subplot
+#             ax = axes[i, j]
+#             ax.plot(steps, losses, label=f"alpha={alpha}, beta={beta}")
+#             ax.set_title(f"alpha={alpha}, beta={beta}")
+#             ax.set_xlabel("Step")
+#             ax.set_ylabel("Loss")
+#             ax.grid(True)
             
-            # Break after the first matching run
-            break
+#             # Break after the first matching run
+#             break
 
-# Adjust layout and save the figure
-plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space for the main title
-plt.savefig("loss_curves_grid.png", dpi=300)
-plt.show()
-print("Loss curves grid saved as 'loss_curves_grid.png'")
+# # Adjust layout and save the figure
+# plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space for the main title
+# if mode == "":
+#     plt.savefig("loss_curves_grid.png", dpi=300)
+# else:
+#     plt.savefig("loss_curves_grid_Vieri.png", dpi=300)
+# plt.show()
+# print("Loss curves grid saved")
 
 
 download_dir=".\\downaloads"
 
 # Create a 3x3 grid of subplots for weight images
 fig, axes = plt.subplots(len(alphas), len(betas), figsize=(12, 12), sharex=True, sharey=True)
-fig.suptitle("Weight Images at Final Step for Different Alpha and Beta Values")
+if mode == "":
+    fig.suptitle("Weight Images for sigma_baseline ="+str(sigma_baseline)+"")
+else:
+    fig.suptitle("Weight Images for sigma_baseline ="+str(sigma_baseline)+" (Vieri Algorithm)")
 
 # Iterate over alphas and betas to populate each subplot
 for i, alpha in enumerate(alphas):
@@ -74,7 +86,8 @@ for i, alpha in enumerate(alphas):
         filters = {
             "config.BETA": beta,
             "config.ALPHA": alpha,
-            "config.MODE": "",
+            "config.MODE": mode,
+            "config.SIGMA_BASELINE": sigma_baseline,
             "state": "finished"
         }
         
@@ -111,7 +124,10 @@ for i, alpha in enumerate(alphas):
 
 # Adjust layout and save the figure
 plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space for the main title
-plt.savefig("weight_images_grid.png", dpi=300)
+if mode == "":
+    plt.savefig("weight_images_grid.png", dpi=300)
+else:
+    plt.savefig("weight_images_grid_Vieri.png", dpi=300)
 plt.show()
 
 # Optional: Clean up by removing downloaded images

@@ -48,7 +48,6 @@ class SOMTrainer():
 
 		if self.wandb_log:
 			wandb.config.update(kwargs)
-			wandb.config.update({"sigma": self.model.sigma})
 		
 		for it in range(kwargs["EPOCHS"]):
 			for i, el in tqdm(enumerate(dataset_train), f"epoch {it+1}", len(dataset_train)):
@@ -110,7 +109,7 @@ class SOMTrainer():
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epoch"):
 			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for batch in data_loader:
-				neighbourhood_func = self.neighbourhood_batch(batch, sigma_local)
+				neighbourhood_func = self.model.neighbourhood_batch(batch, sigma_local)
 				# update weights
 				new_weights = torch.matmul(neighbourhood_func.T, batch[0]) # (som_dim, batch_size)x(batch_size, input_dim) = (som_dim, input_dim)
 				norm = torch.sum(neighbourhood_func, 0) # som_dim
@@ -143,7 +142,6 @@ class SOMTrainer():
 
 		if self.wandb_log:
 			wandb.config.update(kwargs)
-			wandb.config.update({"sigma": self.model.sigma})
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -232,8 +230,6 @@ class SOMTrainer():
 											)
 			
 			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
-			# print("lr: "+str(optimizer.param_groups[0]['lr']))
-			# print("sigma: "+str(sigma_global))
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
