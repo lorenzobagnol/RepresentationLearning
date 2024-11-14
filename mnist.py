@@ -79,7 +79,7 @@ def run_experiment(alpha, beta, vieri_mode, input_data, dataset_train, dataset_v
 		random.seed(config.SEED)
 
 		# Running the experiment
-		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
+		mnist_runner=Runner(config=config, dataset_name="target-radius-experiment-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
 		mnist_runner.run()
 
 		return f"Experiment alpha={alpha}, beta={beta} completed."
