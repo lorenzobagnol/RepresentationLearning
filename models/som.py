@@ -59,8 +59,7 @@ class SOM(nn.Module, ABC):
 
         Args:
             batch (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
-			decay_rate (int): Decay rate for the learning rate.
-            it (int): Current iteration number.
+			radius (float): Variance of the gaussian.
 
         Returns:
             torch.Tensor: Neighborhood function values.
@@ -72,10 +71,7 @@ class SOM(nn.Module, ABC):
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
-		bmu_distances = self.locations.float() - bmu_loc.unsqueeze(1) # (batch_size, som_dim, 2)
-		bmu_distance_squares = torch.sum(torch.pow(bmu_distances, 2), 2) # (batch_size, som_dim)
-		neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, radius**2))) # (batch_size, som_dim)
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius)
 		return neighbourhood_func
 
 	def forward(self, batch: torch.Tensor) -> torch.Tensor:
@@ -96,3 +92,10 @@ class SOM(nn.Module, ABC):
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
 		return bmu_loc
+	
+	def _compute_gaussian(self, points: torch.Tensor, radius: float):
+	
+		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
+		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
+		gaussian_func = torch.exp(torch.neg(torch.div(distance_squares, radius**2))) # (batch_size, som_dim)
+		return gaussian_func

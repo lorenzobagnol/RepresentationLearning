@@ -69,9 +69,7 @@ class STM(SOM):
 		"""
 		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
 
-		target_distances = self.locations.float() - target_loc.unsqueeze(1) # (batch_size, som_dim, 2)
-		target_distances_squares = torch.sum(torch.pow(target_distances, 2), 2) # (batch_size, som_dim)
-		target_dist_func = torch.exp(torch.neg(torch.div(target_distances_squares, radius**2))) # (batch_size, som_dim)
+		target_dist_func = self._compute_gaussian(target_loc, radius)
 
 		return target_dist_func
 
@@ -101,10 +99,8 @@ class STM(SOM):
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
 
-		# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
-		bmu_distances = self.locations.float() - bmu_loc.unsqueeze(1) # (batch_size, som_dim, 2)
-		bmu_distance_squares = torch.sum(torch.pow(bmu_distances, 2), 2) # (batch_size, som_dim)
-		neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, radius**2)))# (batch_size, som_dim)
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius)
 		return neighbourhood_func
+
 
 	
