@@ -103,4 +103,27 @@ class STM(SOM):
 		return neighbourhood_func
 
 
-	
+	def target_and_bmu_weighted_batch(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+		Computes the gaussian centered in an average points of target and BMU
+
+		Args:
+			batch (torch.Tensor): A batch with data obtained from a DataLoader.
+			radius (float): Variance of the gaussian.
+
+		Returns:
+            torch.Tensor: shape = (batch_size, som_dim) containing distances.
+		"""
+		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+
+		# look for the best matching unit (BMU)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+		_, bmu_indices = torch.min(dists, 1) # som_dim
+		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
+
+		average = torch.div(torch.mul(target_loc, bmu_loc), 2.)
+		average_dist_func = self._compute_gaussian(average, radius)
+
+		return average_dist_func
+
