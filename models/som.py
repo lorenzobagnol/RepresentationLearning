@@ -71,7 +71,7 @@ class SOM(nn.Module, ABC):
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		neighbourhood_func = self._compute_gaussian(bmu_loc, radius)
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)
 		return neighbourhood_func
 
 	def forward(self, batch: torch.Tensor) -> torch.Tensor:

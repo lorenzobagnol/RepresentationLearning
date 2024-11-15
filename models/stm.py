@@ -139,10 +139,10 @@ class STM(SOM):
 
 		average_points = torch.div(target_loc + bmu_loc, 2.) # (batch_size, 2) 
 
-		distance_squares = torch.sum(torch.pow(average_points-target_loc, 2), 2) # (batch_size, som_dim)
+		distance_squares = torch.sum(torch.pow(average_points-target_loc, 2), 1) # (batch_size, som_dim)
 
 		# |average_points-target_loc|=|average_points-bmu_loc|
-		maximum_value = torch.exp(-torch.div(distance_squares+distance_squares, radius**2)) # (batch_size, 2) 
+		maximum_value = torch.exp(-torch.div(distance_squares+distance_squares, radius**2)) # (batch_size) 
 
 		return maximum_value 
 
