@@ -126,4 +126,20 @@ class STM(SOM):
 		average_dist_func = self._compute_gaussian(average_points, radius)
 
 		return average_dist_func
+	
+	def gaussian_normalizer(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+
+		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+
+		# look for the best matching unit (BMU)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+		_, bmu_indices = torch.min(dists, 1) # som_dim
+		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
+
+		average_points = torch.div(target_loc + bmu_loc, 2.)
+
+		maximum_value = torch.mul(torch.exp(-torch.div(torch.pow(average_points-target_loc,2))-torch.pow(average_points-bmu_loc,2), torch.pow(radius, 2)))
+
+		return maximum_value
 
