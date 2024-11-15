@@ -249,7 +249,7 @@ class SOMTrainer():
 							neighbourhood_func = self.model.neighbourhood_batch(inputs, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
-							max_weight_function = self.model.gaussian_normalizer(inputs, targets, radius=sigma_local)
+							max_weight_function = self.model.gaussian_product_normalizer(inputs, targets, radius=sigma_local)
 							weight_function = torch.div(weight_function, max_weight_function)
 					distance_matrix = inputs.unsqueeze(1).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) - self.model.weights.unsqueeze(0).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 

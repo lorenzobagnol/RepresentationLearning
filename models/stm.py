@@ -98,8 +98,8 @@ class STM(SOM):
 		_, bmu_indices = torch.min(masked_distances, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-
-		neighbourhood_func = self._compute_gaussian(bmu_loc, radius)
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)
+		
 		return neighbourhood_func
 
 
@@ -123,11 +123,11 @@ class STM(SOM):
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
 		average_points = torch.div(target_loc + bmu_loc, 2.)
-		average_dist_func = self._compute_gaussian(average_points, radius)
+		average_dist_func = self._compute_gaussian(average_points, radius) # (batch_size, som_dim)
 
 		return average_dist_func
 	
-	def gaussian_normalizer(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def gaussian_product_normalizer(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
 
 		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
 
@@ -137,9 +137,12 @@ class STM(SOM):
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		average_points = torch.div(target_loc + bmu_loc, 2.)
+		average_points = torch.div(target_loc + bmu_loc, 2.) # (batch_size, 2) 
 
-		maximum_value = torch.mul(torch.exp(-torch.div(torch.pow(average_points-target_loc,2))-torch.pow(average_points-bmu_loc,2), torch.pow(radius, 2)))
+		distance_squares = torch.sum(torch.pow(average_points-target_loc, 2), 2) # (batch_size, som_dim)
 
-		return maximum_value
+		# |average_points-target_loc|=|average_points-bmu_loc|
+		maximum_value = torch.exp(-torch.div(distance_squares+distance_squares, radius**2)) # (batch_size, 2) 
+
+		return maximum_value 
 
