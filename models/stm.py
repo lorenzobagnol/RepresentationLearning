@@ -67,7 +67,7 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 		target_dist_func = self._compute_gaussian(target_loc, radius)
 
@@ -114,7 +114,7 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 		# look for the best matching unit (BMU)
 		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
@@ -129,7 +129,7 @@ class STM(SOM):
 	
 	def gaussian_product_normalizer(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
 
-		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 		# look for the best matching unit (BMU)
 		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)

@@ -25,6 +25,7 @@ class Runner():
 		self.input_data=input_data
 		self.dataset_train=train_dataset
 		self.dataset_val=val_dataset
+		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 		if (wandb==None or training_mode==None or model==None):
 			args = self.parse_arguments()
 			self.wandb_log=args.wandb_log
@@ -59,7 +60,7 @@ class Runner():
 		y_coords = [round(1 + j * step_y) for j in range(k_y)]
 		# Combine x and y coordinates to get the points
 		points = [(x, y) for x in x_coords for y in y_coords]
-		dict_points={k : torch.Tensor(v) for k,v in enumerate(points[:P])}
+		dict_points={k : torch.Tensor(v).to(self.device) for k,v in enumerate(points[:P])}
 		return dict_points
 	
 	def generate_equally_distributed_points_v2(self, P: int=None) -> dict[int, Tensor]:
@@ -80,7 +81,7 @@ class Runner():
 		points_list=np.int32(points*min(self.config.som_config.M, self.config.som_config.N)).tolist()
 		random.seed(13)
 		random.shuffle(points_list)
-		dict_points={k : torch.Tensor(v) for k,v in enumerate(points_list)}
+		dict_points={k : torch.Tensor(v).to(self.device) for k,v in enumerate(points_list)}
 		return dict_points
 
 	def parse_arguments(self):
@@ -143,13 +144,12 @@ class Runner():
 		torch.manual_seed(self.config.SEED)
 		random.seed(self.config.SEED)
 		np.random.seed(self.config.SEED)
-		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 		match self.model_name:
 			case "som":
-				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(device)
+				model = SOM(self.config.som_config.M, self.config.som_config.N, self.input_data, self.config.som_config.SIGMA).to(self.device)
 			case "stm":
 				target_points=self.generate_equally_distributed_points_v2()
-				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(device)
+				model = STM(self.config.som_config.M, self.config.som_config.N, self.input_data, target_points=target_points, sigma= self.config.som_config.SIGMA).to(self.device)
 		self.select_training(model)
 
