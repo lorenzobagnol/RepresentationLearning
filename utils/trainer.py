@@ -234,7 +234,7 @@ class SOMTrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.1)
+				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.5)
 				for b, batch in enumerate(data_loader):
 					inputs, targets = batch[0].to(device), batch[1].to(device)
 					match kwargs["MODE"]:
