@@ -122,7 +122,11 @@ class STM(SOM):
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		average_points = torch.div(target_loc + bmu_loc, 2) # (batch_size, 2) 
+		distances_targets_bmus = torch.sum(torch.pow(target_loc-bmu_loc,2),1)
+		max_distance=np.square(10)+np.square(30)
+		normalized_distances_targets_bmus = (distances_targets_bmus/max_distance).unsqueeze(1)
+
+		average_points = normalized_distances_targets_bmus*target_loc + (1-normalized_distances_targets_bmus)*bmu_loc # (batch_size, 2) 
 		average_dist_func = self._compute_gaussian(average_points, radius) # (batch_size, som_dim)
 
 		return average_dist_func
