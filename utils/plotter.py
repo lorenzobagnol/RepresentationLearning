@@ -24,7 +24,7 @@ class Plotter():
 		Returns:
 			numpy array: heigh*width*channels array representing the image grid.
 		"""
-		weights = self.model.get_weights()
+		weights = self.model.get_weights().cpu()
 		image_grid=torch.cat([torch.cat([self.model.input_data.inverse_transform_data(weights[i+(j*self.model.n)]) for i in range(self.model.n)], 0) for j in range(self.model.m)], 1)
 		if self.clip_image:
 			return np.clip(image_grid, 0, 1)
@@ -41,7 +41,7 @@ class Plotter():
 			base_font_size = 24  
 			font_size = base_font_size * (dpi_value / 100)  
 			for key, value in self.model.target_points.items():
-				ax.text(value[0]*self.model.input_data.dim1, value[1]*self.model.input_data.dim2, str(key), ha='center', va='center',
+				ax.text(value.cpu()[0]*self.model.input_data.dim1, value.cpu()[1]*self.model.input_data.dim2, str(key), ha='center', va='center',
 					bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=font_size)
 		ax.imshow(image_grid)
 		ax.axis("off")
