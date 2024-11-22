@@ -67,7 +67,7 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 		target_dist_func = self._compute_gaussian(target_loc, radius)
 
@@ -98,9 +98,5 @@ class STM(SOM):
 		_, bmu_indices = torch.min(masked_distances, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-
-		neighbourhood_func = self._compute_gaussian(bmu_loc, radius)
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)	
 		return neighbourhood_func
-
-
-	
