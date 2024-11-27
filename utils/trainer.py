@@ -246,7 +246,7 @@ class SOMTrainer():
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 						case "BGN":
 							weight_function = self.model.target_and_bmu_weighted_batch(inputs, targets, radius=sigma_local)
-						case "BGN2":
+						case "Base_Norm":
 							neighbourhood_func = self.model.neighbourhood_batch(inputs, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
