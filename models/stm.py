@@ -69,7 +69,7 @@ class STM(SOM):
 		"""
 		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
-		target_dist_func = self._compute_gaussian(target_loc, radius)
+		target_dist_func = self._compute_gaussian(target_loc, radius) # (batch_size, som_dim)
 
 		return target_dist_func
 
@@ -149,4 +149,34 @@ class STM(SOM):
 		maximum_value = torch.exp(-torch.div(distance_squares+distance_squares, radius**2)) # (batch_size) 
 
 		return maximum_value 
+	
 
+	def hybrid_weight_function(self, batch: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+        Compute the neighborhood function for a batch of inputs.
+
+        Args:
+            batch (torch.Tensor): Batch of labeled input vectors. B x D where D = total dimension (image_dim*channels)
+			radius (float): Variance of the gaussian.
+
+        Returns:
+            torch.Tensor: Neighborhood function values.
+        """
+		# look for the best matching unit (BMU)
+		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+		_, bmu_indices = torch.min(dists, 1) # som_dim
+		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
+		# compute target points
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		# compute distance from target points and BMUs in the batch
+		bmu_target_distances = torch.sqrt(torch.sum(torch.pow(bmu_loc-target_loc,2), 2)) # (batch_size)
+
+		if (torch.max(bmu_target_distances)>5.):
+			hybrid_weight_function = self.neighbourhood_batch_vieri(batch, targets, radius=radius)
+		else: 
+			neighbourhood_func = self.neighbourhood_batch(batch, radius=radius)
+			target_dist = self.target_distance_batch(targets, radius=radius)
+			hybrid_weight_function = torch.mul(neighbourhood_func, target_dist)
+
+		return hybrid_weight_function

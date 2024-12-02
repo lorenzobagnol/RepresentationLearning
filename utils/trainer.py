@@ -256,6 +256,10 @@ class SOMTrainer():
 								break
 							else:
 								weight_function = torch.div(weight_function, torch.stack([max_weight_function for i in range(self.model.weights.shape[0])], 1))
+						case "Base-STC":
+							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
+							weight_function = self.model.hybrid_weight_function(inputs, targets, radius=sigma_local)
+
 					distance_matrix = inputs.unsqueeze(1).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) - self.model.weights.unsqueeze(0).expand((inputs.shape[0], self.model.weights.shape[0], inputs.shape[1])) # dim = (batch_size, som_dim, input_dim) 
 					norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
@@ -278,7 +282,7 @@ class SOMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 
-			scheduler.step()
+			#scheduler.step()
 			# # not found checkpoint folder in server
 			# checkpoint_path = os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
 			# torch.save({
