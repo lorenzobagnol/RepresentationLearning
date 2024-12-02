@@ -92,7 +92,7 @@ class STM(SOM):
 		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
 		target_distances_squares = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
-		mask = torch.BoolTensor(target_distances_squares<radius) # (batch_size, som_dim)
+		mask = torch.BoolTensor(target_distances_squares<radius).to(self.device) # (batch_size, som_dim)
 
 		masked_distances = torch.where(mask, dists, torch.tensor(float('inf')))
 		_, bmu_indices = torch.min(masked_distances, 1) # som_dim
@@ -170,7 +170,7 @@ class STM(SOM):
 		# compute target points
 		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 		# compute distance from target points and BMUs in the batch
-		bmu_target_distances = torch.sqrt(torch.sum(torch.pow(bmu_loc-target_loc,2), 2)) # (batch_size)
+		bmu_target_distances = torch.sqrt(torch.sum(torch.pow(bmu_loc-target_loc,2), 1)) # (batch_size)
 
 		if (torch.max(bmu_target_distances)>5.):
 			hybrid_weight_function = self.neighbourhood_batch_vieri(batch, targets, radius=radius)

@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
 	alphas = [5]  # 3 different alpha values
 	betas = [0.02]  # 3 different beta values
-	vieri_modes = ["BGN"]
+	vieri_modes = ["Base-STC"]
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(alphas, betas, vieri_modes))
