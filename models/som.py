@@ -98,5 +98,5 @@ class SOM(nn.Module, ABC):
 	
 		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
 		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
-		gaussian_func = torch.exp(torch.neg(torch.div(distance_squares, radius**2))) # (batch_size, som_dim)
+		gaussian_func = torch.mul(1/(radius*torch.sqrt(2*torch.pi)),torch.exp(torch.neg(torch.div(distance_squares, radius**2)))) # (batch_size, som_dim)
 		return gaussian_func
