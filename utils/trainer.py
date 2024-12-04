@@ -259,7 +259,7 @@ class SOMTrainer():
 								weight_function = torch.div(weight_function, torch.stack([max_weight_function for i in range(self.model.weights.shape[0])], 1))
 						case "Base-STC":
 							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
-							weight_function = self.model.hybrid_weight_function(inputs, targets, radius=sigma_local)
+							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
 
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
