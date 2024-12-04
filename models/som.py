@@ -32,8 +32,8 @@ class SOM(nn.Module, ABC):
 
 		w=torch.rand(m*n, self.input_data.dim)
 		self.weights = torch.nn.Parameter(torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO Glorot initialization
-		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-		self.locations = torch.LongTensor(np.array(list(self.neuron_locations()))).to(device)
+		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+		self.locations = torch.LongTensor(np.array(list(self.neuron_locations()))).to(self.device)
 
 	def get_weights(self) -> torch.Tensor:
 		return self.weights.detach()
@@ -54,12 +54,12 @@ class SOM(nn.Module, ABC):
 			to_return.append(self.locations[min_index])
 		return to_return
 
-	def neighbourhood_batch(self, batch: torch.Tensor, radius: float) -> torch.Tensor:
+	def neighbourhood_batch(self, dists: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
         Args:
-            batch (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
+            dists (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
 			radius (float): Variance of the gaussian.
 
         Returns:
@@ -67,8 +67,6 @@ class SOM(nn.Module, ABC):
         """
 
 		# look for the best matching unit (BMU)
-		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
-		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
@@ -77,22 +75,20 @@ class SOM(nn.Module, ABC):
 
 	def forward(self, batch: torch.Tensor) -> torch.Tensor:
 		"""
-        Compute the Best Matching Unit for a batch of inputs.
+        Compute the distances for a batch of inputs.
 
         Args:
             batch (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
 
         Returns:
-            torch.Tensor: Best Matching Unit for the input batch B x 2
+            torch.Tensor: 
         """
 
-		# look for the best matching unit (BMU)
+		# look for the distances
 		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
 		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
-		_, bmu_indices = torch.min(dists, 1) # som_dim
-		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		return bmu_loc
+		return dists
 	
 	def _compute_gaussian(self, points: torch.Tensor, radius: float):
 	
