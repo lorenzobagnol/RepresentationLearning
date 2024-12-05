@@ -241,7 +241,7 @@ class SOMTrainer():
 					match kwargs["MODE"]:
 						case "STC":
 							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
-						case "":
+						case "Base":
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
@@ -254,9 +254,8 @@ class SOMTrainer():
 							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
-							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
-
+							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 					if b==len(data_loader)-1 and self.wandb_log:
@@ -277,7 +276,7 @@ class SOMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 
-			#scheduler.step()
+			scheduler.step()
 			# # not found checkpoint folder in server
 			# checkpoint_path = os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
 			# torch.save({

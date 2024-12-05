@@ -150,7 +150,7 @@ class STM(SOM):
         Compute the neighborhood function for a batch of inputs.
 
         Args:
-            dists (torch.Tensor): Batch of labeled input vectors. B x D where D = total dimension (image_dim*channels)
+            dists (torch.Tensor): Norm squared of distance batch-weights (batch_size, som_dim).
 			radius (float): Variance of the gaussian.
 
         Returns:
@@ -170,3 +170,5 @@ class STM(SOM):
 			hybrid_weight_function = self.target_and_bmu_weighted_batch(dists, targets, radius=radius)
 
 		return hybrid_weight_function
+	
+

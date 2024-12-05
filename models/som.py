@@ -93,10 +93,22 @@ class SOM(nn.Module, ABC):
 	def _compute_gaussian(self, points: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute a normalized gaussian centered in a batch of points with a certain radius.
-		
+
         """
 
 		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
 		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
 		gaussian_func = torch.mul(1/(radius*torch.sqrt(torch.tensor([2*torch.pi], device=self.device))),torch.exp(torch.neg(torch.div(distance_squares, radius**2)))) # (batch_size, som_dim)
 		return gaussian_func
+	
+	
+	def _compute_tanh(self, points: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+        Compute an hyperbolic tangent function centered in a batch of points with a certain radius.
+
+        """
+		
+		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
+		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
+		tanh_weight_function = torch.tanh(torch.div((radius**2),distance_squares))   
+		return tanh_weight_function
