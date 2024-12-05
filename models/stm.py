@@ -39,8 +39,8 @@ class STM(SOM):
 		# compute mask around the target point
 		target_loc=torch.stack([self.target_points[label] for i in range(batch_size)]) # (batch_size, 2) 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
-		target_distances_squares = torch.sqrt+(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
-		mask = (target_distances_squares<self.sigma) 
+		target_distances = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
+		mask = (target_distances<self.sigma) 
 
 		total_distance=0
 		for b, batch in enumerate(data_loader):
