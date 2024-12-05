@@ -63,12 +63,12 @@ class SOMTrainer():
 				sigma_op = self.model.sigma * learning_rate_op
 
 				# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
-				bmu_distance_squares = torch.sum(torch.pow(self.model.locations.float() - torch.stack([bmu_loc for i in range(self.model.m*self.model.n)]).float(), 2), 1) # dim = self.model_dim = m*n
+				bmu_distance_squares = torch.sum(torch.pow(self.model.locations.float() - bmu_loc.unsqueeze(0).float(), 2), 1) # dim = self.model_dim = m*n
 				neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2)))
 				learning_rate_op = alpha_op * neighbourhood_func
 
 				learning_rate_multiplier = torch.stack([learning_rate_op[i:i+1]*np.ones(self.model.input_data.dim) for i in range(self.model.m*self.model.n)]) # dim = (m*n, input_dim)
-				delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.model.m*self.model.n)]) - self.model.weights))       # element-wise multiplication -> dim = (m*n, input_dim)
+				delta = torch.mul(learning_rate_multiplier, x.unsqueeze(0) - self.model.weights)       # element-wise multiplication -> dim = (m*n, input_dim)
 				new_weights = torch.add(self.model.weights, delta)
 				self.model.weights = torch.nn.Parameter(new_weights)
 				if self.wandb_log:
@@ -252,11 +252,7 @@ class SOMTrainer():
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
-							if np.array(torch.min(max_weight_function).detach())<0.0000001:
-								print("Loss nulla ovunque")
-								break
-							else:
-								weight_function = torch.div(weight_function, torch.stack([max_weight_function for i in range(self.model.weights.shape[0])], 1))
+							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
 							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
