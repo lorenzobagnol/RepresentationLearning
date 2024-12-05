@@ -119,7 +119,7 @@ def create_image_grid(alphas, betas, mode, sigma_baseline):
     
 
 
-def __main__():
+if __name__=="__main__":
     # Define alphas and betas
     alphas = [5, 2, 1]
     betas = [0.005, 0.01, 0.02]
