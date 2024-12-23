@@ -258,11 +258,11 @@ class SOMTrainer():
 							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
-					with torch.no_grad():
-						local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
-
 					if b==len(data_loader)-1 and self.wandb_log:
 						if log_flag:
+
+							with torch.no_grad():
+								local_competence=self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"], device=device)
 							plotter = Plotter(self.model, self.clip_images)
 							pil_image = plotter.create_pil_image()
 							wandb.log({	
@@ -273,7 +273,6 @@ class SOMTrainer():
 						else:
 							wandb.log({	
 								"loss" : loss.item(),
-								"competence" : local_competence,
 							})
 
 					loss = torch.mul(lr_local, loss)
