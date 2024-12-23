@@ -258,6 +258,9 @@ class SOMTrainer():
 							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
+					with torch.no_grad():
+						local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+
 					if b==len(data_loader)-1 and self.wandb_log:
 						if log_flag:
 							plotter = Plotter(self.model, self.clip_images)
@@ -265,10 +268,12 @@ class SOMTrainer():
 							wandb.log({	
 								"weights": wandb.Image(pil_image),
 								"loss" : loss.item(),
+								"competence" : local_competence,
 							})
 						else:
 							wandb.log({	
 								"loss" : loss.item(),
+								"competence" : local_competence,
 							})
 
 					loss = torch.mul(lr_local, loss)
@@ -285,9 +290,6 @@ class SOMTrainer():
 			# 	'optimizer_state_dict': optimizer.state_dict(),
 			# 	}, checkpoint_path)
 			
-				# with torch.no_grad():
-				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)
-				# 	print(local_competence)
 					
 				# if local_competence < 0.0001:
 				# 	print("Training interrupted for this subest after "+str(iter_no)+" epochs.")
@@ -298,3 +300,28 @@ class SOMTrainer():
 		if wandb.run is not None:
 			wandb.finish()
 		return
+	
+
+	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int, device):
+
+		self.model.eval()
+		indices = torch.where(val_set.targets==label)[0].tolist()
+		subset_val=torch.utils.data.Subset(val_set, indices)
+		data_loader = torch.utils.data.DataLoader(subset_val,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		
+		total_distance=0
+		for b, batch in enumerate(data_loader):
+			inputs, targets = batch[0].to(device), batch[1].to(device)
+			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
+
+			# look for the best matching unit (BMU)
+			_, bmu_indices = torch.min(norm_distance_matrix, 1) # som_dim
+			total_distance+=_
+		
+		total_distance /= len(subset_val)
+
+		self.model.train()
+		return total_distance

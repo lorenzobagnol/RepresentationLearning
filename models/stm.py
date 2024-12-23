@@ -25,35 +25,6 @@ class STM(SOM):
 		super().__init__(m = m, n = n, input_data = input_data, sigma = sigma)
 		self.target_points = target_points
 
-
-	def compute_local_competence(self, val_set: datasets, label: int, batch_size: int):
-
-		self.eval()
-		indices = torch.where(val_set.targets==label)[0].tolist()
-		subset_val=torch.utils.data.Subset(val_set, indices)
-		data_loader = torch.utils.data.DataLoader(subset_val,
-										batch_size=batch_size,
-										shuffle=False,
-										)
-		
-		# compute mask around the target point
-		target_loc=torch.stack([self.target_points[label] for i in range(batch_size)]) # (batch_size, 2) 
-		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
-		target_distances = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
-		mask = (target_distances<self.sigma) 
-
-		total_distance=0
-		for b, batch in enumerate(data_loader):
-			dists = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) - self.weights.unsqueeze(0).expand((batch[0].shape[0], self.weights.shape[0], batch[0].shape[1])) # (batch_size, som_dim, image_tot_dim)
-			dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
-			masked_dists = dists*mask
-			total_distance += torch.sum(masked_dists).item()
-		
-		total_distance /= len(subset_val)
-		total_distance /= torch.sum(mask).item()
-
-		self.train()
-		return total_distance
 			
 	
 	def target_distance_batch(self, targets: torch.Tensor, radius: float) -> torch.Tensor:
