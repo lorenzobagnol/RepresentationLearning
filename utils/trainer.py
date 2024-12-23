@@ -318,7 +318,7 @@ class SOMTrainer():
 
 			# look for the best matching unit (BMU)
 			_, bmu_indices = torch.min(norm_distance_matrix, 1) # som_dim
-			total_distance+=_
+			total_distance+=torch.sum(_)
 		
 		total_distance /= len(subset_val)
 
