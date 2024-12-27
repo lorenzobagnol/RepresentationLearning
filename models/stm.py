@@ -117,9 +117,9 @@ class STM(SOM):
 		# compute distance from target points and BMUs in the batch
 		bmu_target_distances = torch.sqrt(torch.sum(torch.pow(bmu_loc-target_loc,2), 1)) # (batch_size)
 
-		if (torch.max(bmu_target_distances)>5.):
+		if (torch.max(bmu_target_distances)>5.): # Vieri mode
 			hybrid_weight_function = self.neighbourhood_batch_vieri(dists, targets, radius=radius)
-		else: 
+		else:  # base mode
 			neighbourhood_func = self.neighbourhood_batch(dists, radius=radius)
 			target_dist = self.target_distance_batch(targets, radius=radius)
 			hybrid_weight_function = torch.mul(neighbourhood_func, target_dist)
@@ -139,7 +139,8 @@ class STM(SOM):
             torch.Tensor: Neighborhood function values.
         """
 
-		weighted_dists = torch.mul(dists, self._compute_gaussian(targets, radius))
+		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		weighted_dists = torch.mul(dists, self._compute_gaussian(target_loc, radius))
 		_, bmu_indices = torch.min(weighted_dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
