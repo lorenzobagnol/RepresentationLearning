@@ -245,9 +245,9 @@ class SOMTrainer():
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
-						case "BGN":
+						case "BGN": # not working. Learn where it shouldn't learn
 							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
-						case "Base_Norm":
+						case "Base_Norm": # not working. Often divides by zero
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
@@ -255,6 +255,8 @@ class SOMTrainer():
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
+						case "STC-modified":
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local)
 							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
