@@ -140,7 +140,7 @@ class STM(SOM):
         """
 
 		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
-		weighted_dists = torch.mul(dists, self._compute_gaussian(target_loc, radius))
+		weighted_dists = torch.mul(dists, torch.neg(self._compute_gaussian(target_loc, radius)))
 		_, bmu_indices = torch.min(weighted_dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
