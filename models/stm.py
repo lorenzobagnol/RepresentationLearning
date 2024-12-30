@@ -148,14 +148,6 @@ class STM(SOM):
 		
 		return neighbourhood_func
 
-
-
-
-
-
-
-
-	"""
 	def gaussian_product_normalizer(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
 
 		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
@@ -172,4 +164,4 @@ class STM(SOM):
 		maximum_value = torch.exp(-torch.div(distance_squares+distance_squares, radius**2)) # (batch_size) 
 
 		return maximum_value 
-	"""
+	

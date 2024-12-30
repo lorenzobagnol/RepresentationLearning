@@ -252,6 +252,9 @@ class SOMTrainer():
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
+							if torch.max(max_weight_function)==0:
+								print("loss zero everywhere")
+								continue
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
