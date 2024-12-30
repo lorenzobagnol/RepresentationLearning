@@ -211,7 +211,7 @@ class SOMTrainer():
 			if i not in labels:
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		
-		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
+		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
 		
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
@@ -234,7 +234,7 @@ class SOMTrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.5)
+				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, targets = batch[0].to(device), batch[1].to(device)
 					norm_distance_matrix = self.model(inputs)
@@ -253,7 +253,9 @@ class SOMTrainer():
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
 							if torch.max(max_weight_function)==0:
-								print("loss zero everywhere")
+								print("loss normalization zero everywhere")
+								if max(torch.sum(weight_function,1))==0:
+									print("also weight is 0")
 								continue
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
