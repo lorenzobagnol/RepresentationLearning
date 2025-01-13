@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 
 from utils.inputdata import InputData
 from utils.runner import Runner
-from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig
+from utils.config import Config, SOMConfig, SimpleBatchConfig, PytorchBatchConfig, LifeLongConfig, OnlineConfig, VARS
 		
 def create_dataset(input_data: InputData):
 	"""
@@ -68,10 +68,11 @@ def run_experiment(var1, var2, input_data, dataset_train, dataset_val):
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=var1, BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1, LEARNING_RATE=0.01, MODE="Base_Norm", target_radius=var2),
+			lifelong_config=LifeLongConfig(ALPHA=var1, BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1, LEARNING_RATE=0.01, MODE="Base_Norm"),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
-			online_config=OnlineConfig(EPOCHS=1)
+			online_config=OnlineConfig(EPOCHS=1),
+			vars=VARS(var1=var1, var2=var2)
 		)
 
 		random.seed(config.SEED)

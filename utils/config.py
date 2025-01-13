@@ -48,6 +48,12 @@ class OnlineConfig(BaseConfig):
     """Online training configuration."""
     EPOCHS: int
 
+
+@dataclass
+class VARS(BaseConfig):  
+    var1: float
+    var2: float
+
 @dataclass
 class Config:
     """Master configuration class that can hold all the sub-configurations."""
@@ -57,3 +63,5 @@ class Config:
     simple_batch_config: SimpleBatchConfig 
     pytorch_batch_config: PytorchBatchConfig 
     online_config: OnlineConfig 
+    vars: VARS
+
