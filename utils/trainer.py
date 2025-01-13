@@ -251,7 +251,7 @@ class SOMTrainer():
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
 							weight_function = torch.mul(neighbourhood_func, target_dist)
-							max_weight_function = torch.max(max_weight_function,1).values # (batch_size, som_dim)
+							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
 							if torch.max(max_weight_function)==0:
 								print("loss normalization zero everywhere")
 								if max(torch.sum(weight_function,1))==0:
