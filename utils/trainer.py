@@ -249,9 +249,9 @@ class SOMTrainer():
 							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
 						case "Base_Norm": # not working. Often divides by zero
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
 							weight_function = torch.mul(neighbourhood_func, target_dist)
-							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
+							max_weight_function = torch.max(max_weight_function,1).values # (batch_size, som_dim)
 							if torch.max(max_weight_function)==0:
 								print("loss normalization zero everywhere")
 								if max(torch.sum(weight_function,1))==0:
