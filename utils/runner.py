@@ -128,13 +128,13 @@ class Runner():
 		training_function = getattr(trainer, "train_"+self.training_mode)
 		match self.training_mode:
 			case "simple_batch":
-				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict(), **self.config.variables.to_dict(), **self.config.som_config.to_dict())
 			case "online":
-				training_function(self.dataset_train, self.dataset_val, **self.config.online_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.online_config.to_dict(), **self.config.variables.to_dict(), **self.config.som_config.to_dict())
 			case "pytorch_batch":
-				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict(), **self.config.variables.to_dict(), **self.config.som_config.to_dict())
 			case "LifeLong":
-				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict(), **self.config.variables.to_dict(), **self.config.som_config.to_dict())
 		return
 
 	def run(self):

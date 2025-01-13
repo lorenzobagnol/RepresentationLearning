@@ -72,7 +72,7 @@ def run_experiment(var1, var2, input_data, dataset_train, dataset_val):
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1),
-			vars=VARS(var1=var1, var2=var2)
+			variables=VARS(target_radius=var2)
 		)
 
 		random.seed(config.SEED)
