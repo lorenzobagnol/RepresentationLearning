@@ -90,16 +90,16 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 
 if __name__ == '__main__':
 
-
+	os.environ["CUDA_VISIBLE_DEVICES"]="0"
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
-	vars1 = [5, 4, 3]  # 3 different targed radius values
-	vars2 = [10, 5, 2]  # 3 different alpha values
-	vars3 = ["Base", "STC-modified"]  # 3 different mode values
+	vars0 = [5, 4, 3]  # 3 different alpha values
+	vars1 = [10, 5, 2]  # 3 different targed radius values
+	vars2 = ["Base", "STC-modified"]  # different mode values
 
 	# Create 9 combinations of alpha and beta values
-	param_combinations = list(product(vars1, vars2, vars3))
+	param_combinations = list(product(vars0, vars1, vars2))
 
 	# # use this line if using ProcessPoolExecutor
 	mp.set_start_method('spawn', force=True)
