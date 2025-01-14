@@ -106,7 +106,7 @@ if __name__ == '__main__':
 	# Run experiments in parallel using ProcessPoolExecutor
 	with ProcessPoolExecutor(max_workers=1) as executor:
 		futures = [
-			executor.submit(run_experiment, [var1, var2, var3], input_data, dataset_train, dataset_val)
+			executor.submit(run_experiment, var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
 			for (var1, var2, var3) in param_combinations
 		]
 		
