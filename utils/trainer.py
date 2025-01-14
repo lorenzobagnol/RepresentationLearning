@@ -261,7 +261,7 @@ class SOMTrainer():
 						case "Base-STC":
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
 						case "STC-modified":
-							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local)
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
 							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
@@ -328,6 +328,7 @@ class SOMTrainer():
 			total_distance+=torch.sum(_)
 		
 		total_distance /= len(subset_val)
+		# total_distance= math.exp()
 
 		self.model.train()
 		return total_distance

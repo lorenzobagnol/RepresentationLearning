@@ -127,7 +127,7 @@ class STM(SOM):
 		return hybrid_weight_function
 	
 
-	def neighbourhood_batch_vieri_modified(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def neighbourhood_batch_vieri_modified(self, dists: torch.Tensor, targets: torch.Tensor, radius: float, target_radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
