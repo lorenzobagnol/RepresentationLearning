@@ -81,9 +81,9 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		mnist_runner=Runner(config=config, dataset_name="target-radius-experiment-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
 		mnist_runner.run()
 
-		return f"Experiment var1={args[0]}, var2={args[1]} completed."
+		return f"Experiment "+str(list(args))+" completed."
 	except Exception as e:
-		error_message = f"Error in experiment var1={args[0]}, var2={args[1]}: {e}\n{traceback.format_exc()}"
+		error_message = f"Error in experiment "+str(list(args))+f": {e}\n{traceback.format_exc()}"
 		print(error_message)
 		return error_message
 
