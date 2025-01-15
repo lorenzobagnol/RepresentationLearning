@@ -243,7 +243,7 @@ class SOMTrainer():
 							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
 						case "Base":
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 						case "BGN": # not working. Learn where it shouldn't learn
 							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
