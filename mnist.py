@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
 	vars0 = [5, 4, 3]  # 3 different alpha values
 	vars1 = [10, 5, 2]  # 3 different targed radius values
-	vars2 = ["Base", "STC-modified"]  # different mode values
+	vars2 = ["Base", "STC-modified", "Base_Norm"]  # different mode values
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(vars0, vars1, vars2))
