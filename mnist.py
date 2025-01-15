@@ -68,7 +68,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=args[0], BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1, LEARNING_RATE=0.1, MODE=args[2]),
+			lifelong_config=LifeLongConfig(ALPHA=args[0], BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE=args[2]),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1),
