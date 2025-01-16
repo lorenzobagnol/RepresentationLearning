@@ -26,6 +26,7 @@ class Runner():
 		self.dataset_train=train_dataset
 		self.dataset_val=val_dataset
 		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+		print("Device: ", self.device)
 		if (wandb==None or training_mode==None or model==None):
 			args = self.parse_arguments()
 			self.wandb_log=args.wandb_log
