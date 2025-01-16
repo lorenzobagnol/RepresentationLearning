@@ -6,6 +6,7 @@ import torch
 import os
 import traceback
 import torch.multiprocessing as mp
+import wandb
 
 from utils.inputdata import InputData
 from utils.runner import Runner
@@ -64,6 +65,25 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		str: Message indicating the experiment completed.
 	"""
 	try:
+		entity = "replearn"
+		project = "STM-target-radius-experiment-MNIST"
+		api = wandb.Api()
+		filters = {
+
+			"state": "finished",
+			"config.ALPHA": args[0],
+			"config.target:radius": args[1],
+			"config.mode": args[2]
+		}
+		runs = api.runs(
+			path=f"{entity}/{project}",
+			filters=filters,
+			order="-created_at"
+		)
+
+		for run in runs:
+			print("already exists")
+			return
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
