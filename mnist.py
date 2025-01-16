@@ -72,8 +72,8 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 
 			"state": "finished",
 			"config.ALPHA": args[0],
-			"config.target:radius": args[1],
-			"config.mode": args[2]
+			"config.target_radius": args[1],
+			"config.MODE": args[2]
 		}
 		runs = api.runs(
 			path=f"{entity}/{project}",
@@ -81,9 +81,8 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 			order="-created_at"
 		)
 
-		for run in runs:
-			print("already exists")
-			return
+		if len(runs)!=0:
+			return f"run already exists"
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
