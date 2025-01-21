@@ -36,26 +36,6 @@ def create_dataset(input_data: InputData):
 	return MNIST_train_subset, MNIST_val_subset
 
 
-# input_data=InputData((28,28),1,"Unit")
-# config = Config(
-# 	SEED=13,
-#     som_config=SOMConfig(M=20, N=20, SIGMA=10),
-#     lifelong_config=LifeLongConfig(ALPHA=10, BETA=0.005, BATCH_SIZE=20, EPOCHS_PER_SUBSET=20, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=2, LEARNING_RATE=0.001),
-#     simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
-#     pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
-#     online_config=OnlineConfig(EPOCHS=1)
-# )
-# random.seed(config.SEED)
-# dataset_train, dataset_val = create_dataset(input_data=input_data)
-# mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val)
-# mnist_runner.run()
-
-
-
-
-
-
-
 
 def run_experiment(*args, input_data, dataset_train, dataset_val):
 	"""
@@ -65,24 +45,26 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		str: Message indicating the experiment completed.
 	"""
 	try:
-		entity = "replearn"
-		project = "STM-target-radius-experiment-MNIST"
-		api = wandb.Api()
-		filters = {
+		# entity = "replearn"
+		# project = "STM-target-radius-experiment-MNIST"
+		# api = wandb.Api()
+		# filters = {
 
-			"state": "finished",
-			"config.ALPHA": args[0],
-			"config.target_radius": args[1],
-			"config.MODE": args[2]
-		}
-		runs = api.runs(
-			path=f"{entity}/{project}",
-			filters=filters,
-			order="-created_at"
-		)
+		# 	"state": "finished",
+		# 	"config.ALPHA": args[0],
+		# 	"config.target_radius": args[1],
+		# 	"config.MODE": args[2]
+		# }
+		# runs = api.runs(
+		# 	path=f"{entity}/{project}",
+		# 	filters=filters,
+		# 	order="-created_at"
+		# )
 
-		if len(runs)!=0:
-			return f"run already exists"
+		# if len(runs)!=0:
+		# 	return f"run already exists"
+
+
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
@@ -93,7 +75,6 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 			online_config=OnlineConfig(EPOCHS=1),
 			variables=VARS(target_radius=args[1])
 		)
-
 		random.seed(config.SEED)
 
 		# Running the experiment

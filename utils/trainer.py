@@ -143,6 +143,8 @@ class SOMTrainer():
 		if self.wandb_log:
 			wandb.config.update(kwargs)
 
+		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
 											batch_size=kwargs["BATCH_SIZE"],
@@ -152,29 +154,32 @@ class SOMTrainer():
 		self.model.train()
 		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epochs", leave=True, position=0):
+			lr_local = math.exp(-kwargs["BETA"]*iter_no)
 			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for b, batch in enumerate(data_loader):
-				neighbourhood_func = self.model.neighbourhood_batch(batch, sigma_local)
+				inputs, targets = batch[0].to(device), batch[1].to(device)
+				norm_distance_matrix = self.model(inputs)
+				neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, sigma_local)
 				if isinstance(self.model, STM):
-					target_dist = self.model.target_distance_batch(batch, sigma_local)
+					target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
 					weight_function = torch.mul(neighbourhood_func, target_dist)
 				else:
 					weight_function = neighbourhood_func
-				distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
-				norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
-				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,norm_distance_matrix)))
+				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
+				if b==len(data_loader)-1 and self.wandb_log:
+					plotter = Plotter(self.model, self.clip_images)
+					pil_image = plotter.create_pil_image()
+					wandb.log({	
+						"weights": wandb.Image(pil_image),
+						"loss" : loss.item()
+					})
+
+				loss = torch.mul(lr_local, loss)
 				loss.backward()
 				optimizer.step()
 				optimizer.zero_grad()
 
-			if self.wandb_log:
-				plotter = Plotter(self.model, self.clip_images)
-				pil_image = plotter.create_pil_image()
-				wandb.log({	
-					"weights": wandb.Image(pil_image),
-					"loss" : loss.item()
-				})
 		if wandb.run is not None:
 			wandb.finish()
 		return
