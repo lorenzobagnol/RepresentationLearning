@@ -148,11 +148,12 @@ class SOMTrainer():
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
 											batch_size=kwargs["BATCH_SIZE"],
-											shuffle=True,)
+											shuffle=True,
+											drop_last=True)
 		print("\u2713", flush=True)
 		print("\n\n\n")
 		self.model.train()
-		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
+		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epochs", leave=True, position=0):
 			lr_local = math.exp(-kwargs["BETA"]*iter_no)
 			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
@@ -161,8 +162,31 @@ class SOMTrainer():
 				norm_distance_matrix = self.model(inputs)
 				neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, sigma_local)
 				if isinstance(self.model, STM):
-					target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
-					weight_function = torch.mul(neighbourhood_func, target_dist)
+					match kwargs["MODE"]:
+						case "STC":
+							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
+						case "Base":
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+						case "BGN": # not working. Learn where it shouldn't learn
+							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
+						case "Base_Norm": # not working. Often divides by zero
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
+							if torch.max(max_weight_function)==0:
+								print("loss normalization zero everywhere")
+								if max(torch.sum(weight_function,1))==0:
+									print("also weight is 0")
+								continue
+							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
+						case "Base-STC":
+							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
+						case "STC-modified":
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
+							
 				else:
 					weight_function = neighbourhood_func
 				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
