@@ -66,7 +66,7 @@ def generate_equally_distributed_points_v2(m, n, device, P: int=None) -> dict[in
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 input_data = InputData((28, 28), 1, "Unit")
 target_points=generate_equally_distributed_points_v2(20,20,device)
-stm = STM(m=20, n=20, sigma=10, input_data=input_data, target_points=target_points)
+stm = STM(m=20, n=20, sigma=10, input_data=input_data, target_points=target_points).to(device)
 dataset_train, dataset_val = create_dataset(input_data=input_data)
 
 
