@@ -79,5 +79,6 @@ trainer.train_pytorch_batch(
 	BATCH_SIZE=20, 
 	LEARNING_RATE=1, 
 	BETA=0.02,
-	target_radius=2
+	target_radius=2,
+	MODE= "Base"
 	)

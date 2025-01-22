@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 from typing import Sequence, Union
 import PIL
+import io
 
 from models.som import SOM
 from models.stm import STM
@@ -49,12 +50,17 @@ class Plotter():
 		return fig
 	
 	def create_pil_image(self):
-		image_grid = self.create_image_grid()
-		fig = self.resize_image(image_grid)
-		fig.canvas.draw()
-		pil_image=PIL.Image.frombytes('RGB', 
-			fig.canvas.get_width_height(),fig.canvas.tostring_rgb())
-		plt.close(fig)
+		self.image_grid = self.create_image_grid()
+		fig = self.resize_image(self.image_grid)
+		 # Save the figure to a buffer
+		buf = io.BytesIO()
+		fig.savefig(buf, format='png', bbox_inches='tight')
+		buf.seek(0)  # Rewind the buffer to the beginning
+		
+		# Create a PIL image from the buffer
+		pil_image = PIL.Image.open(buf)
+		plt.close(fig)  # Close the figure to free memory
+		buf.close()  # Close the buffer
 		return pil_image
-	
+		
 

@@ -189,6 +189,7 @@ class SOMTrainer():
 							
 				else:
 					weight_function = neighbourhood_func
+
 				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 				if b==len(data_loader)-1 and self.wandb_log:
@@ -206,7 +207,7 @@ class SOMTrainer():
 
 		if wandb.run is not None:
 			wandb.finish()
-		return
+		return plotter
 
 	def train_LifeLong(self, dataset_train: Dataset, dataset_val: Dataset, **kwargs):
 		"""
