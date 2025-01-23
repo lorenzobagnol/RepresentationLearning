@@ -94,8 +94,8 @@ if __name__ == '__main__':
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
-	vars0 = [5, 4, 3]  # 3 different alpha values
-	vars1 = [10, 5, 2]  # 3 different targed radius values
+	vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
+	vars1 = [10, 5, 2, 1.5]  # 3 different targed radius values
 	vars2 = ["Base", "STC-modified", "Base_Norm"]  # different mode values
 
 	# Create 9 combinations of alpha and beta values
