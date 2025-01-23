@@ -45,24 +45,24 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		str: Message indicating the experiment completed.
 	"""
 	try:
-		# entity = "replearn"
-		# project = "STM-target-radius-experiment-MNIST"
-		# api = wandb.Api()
-		# filters = {
+		entity = "replearn"
+		project = "STM-target-radius-experiment-MNIST"
+		api = wandb.Api()
+		filters = {
 
-		# 	"state": "finished",
-		# 	"config.ALPHA": args[0],
-		# 	"config.target_radius": args[1],
-		# 	"config.MODE": args[2]
-		# }
-		# runs = api.runs(
-		# 	path=f"{entity}/{project}",
-		# 	filters=filters,
-		# 	order="-created_at"
-		# )
+			"state": "finished",
+			"config.ALPHA": args[0],
+			"config.target_radius": args[1],
+			"config.MODE": args[2]
+		}
+		runs = api.runs(
+			path=f"{entity}/{project}",
+			filters=filters,
+			order="-created_at"
+		)
 
-		# if len(runs)!=0:
-		# 	return f"run already exists"
+		if len(runs)!=0:
+			return f"run already exists"
 
 
 		# Creating a specific config with varying parameters for alpha and var2
