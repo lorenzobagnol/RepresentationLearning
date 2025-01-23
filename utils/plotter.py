@@ -58,7 +58,7 @@ class Plotter():
 		buf.seek(0)  # Rewind the buffer to the beginning
 		
 		# Create a PIL image from the buffer
-		pil_image = PIL.Image.open(buf)
+		pil_image = PIL.Image.open(buf).copy()
 		plt.close(fig)  # Close the figure to free memory
 		buf.close()  # Close the buffer
 		return pil_image
