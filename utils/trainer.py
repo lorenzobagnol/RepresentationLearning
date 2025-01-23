@@ -160,7 +160,6 @@ class SOMTrainer():
 			for b, batch in enumerate(data_loader):
 				inputs, targets = batch[0].to(device), batch[1].to(device)
 				norm_distance_matrix = self.model(inputs)
-				neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, sigma_local)
 				if isinstance(self.model, STM):
 					match kwargs["MODE"]:
 						case "STC":
@@ -188,7 +187,7 @@ class SOMTrainer():
 							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
 							
 				else:
-					weight_function = neighbourhood_func
+					weight_function = self.model.neighbourhood_batch(norm_distance_matrix, sigma_local)
 
 				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
@@ -202,6 +201,7 @@ class SOMTrainer():
 
 				loss = torch.mul(lr_local, loss)
 				loss.backward()
+				torch.nn.utils.clip_grad_value_(self.model.parameters(), 10) #TODO verify
 				optimizer.step()
 				optimizer.zero_grad()
 

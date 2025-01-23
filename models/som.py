@@ -31,7 +31,7 @@ class SOM(nn.Module, ABC):
 			self.sigma = float(sigma)
 
 		w=torch.rand(m*n, self.input_data.dim)
-		self.weights = torch.nn.Parameter(torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO Glorot initialization
+		self.weights = torch.nn.Parameter(1e-4*torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO verify
 		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 		self.locations = torch.LongTensor(np.array(list(self.neuron_locations()))).to(self.device)
 
