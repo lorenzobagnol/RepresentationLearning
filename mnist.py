@@ -101,19 +101,19 @@ if __name__ == '__main__':
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(vars0, vars1, vars2))
 
-	# # use this line if using ProcessPoolExecutor
-	# mp.set_start_method('spawn', force=True)
-	# # Run experiments in parallel using ProcessPoolExecutor
-	# with ProcessPoolExecutor(max_workers=1) as executor:
-	# 	futures = [
-	# 		executor.submit(run_experiment, var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
-	# 		for (var1, var2, var3) in param_combinations
-	# 	]
+	# use this line if using ProcessPoolExecutor
+	mp.set_start_method('spawn', force=True)
+	# Run experiments in parallel using ProcessPoolExecutor
+	with ProcessPoolExecutor() as executor:
+		futures = [
+			executor.submit(run_experiment, var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
+			for (var1, var2, var3) in param_combinations
+		]
 		
-	# 	# Wait for all futures to complete and print results
-	# 	for future in futures:
-	# 		print(future.result())
+		# Wait for all futures to complete and print results
+		for future in futures:
+			print(future.result())
 
-	for (var1, var2, var3) in param_combinations:
-		run_experiment( var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
+	# for (var1, var2, var3) in param_combinations:
+	# 	run_experiment( var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
 

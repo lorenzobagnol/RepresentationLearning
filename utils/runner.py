@@ -112,7 +112,7 @@ class Runner():
 			train_mode (str): Training mode, either 'simple_batch', 'pytorch_batch', or 'online'.
 		"""
 		
-		trainer = SOMTrainer(model, self.wandb_log, True)
+		trainer = SOMTrainer(model=model, device=self.device, wandb_log=self.wandb_log, clip_images=True)
 		if self.training_mode==None:
 			while True:
 				train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))

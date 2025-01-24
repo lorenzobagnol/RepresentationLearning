@@ -17,10 +17,11 @@ from models.stm import STM
 
 class SOMTrainer():
 	
-	def __init__(self, model: Union[SOM,STM], wandb_log: bool, clip_images: bool = False):
+	def __init__(self, model: Union[SOM,STM], device, wandb_log: bool, clip_images: bool = False):
 		self.model = model
 		self.wandb_log = wandb_log
 		self.clip_images = clip_images
+		self.device = device
 
 	def available_training_modes(self):
 		if isinstance(self.model, STM):
@@ -143,7 +144,6 @@ class SOMTrainer():
 		if self.wandb_log:
 			wandb.config.update(kwargs)
 
-		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
@@ -158,7 +158,7 @@ class SOMTrainer():
 			lr_local = math.exp(-kwargs["BETA"]*iter_no)
 			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for b, batch in enumerate(data_loader):
-				inputs, targets = batch[0].to(device), batch[1].to(device)
+				inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 				norm_distance_matrix = self.model(inputs)
 				if isinstance(self.model, STM):
 					match kwargs["MODE"]:
@@ -232,8 +232,6 @@ class SOMTrainer():
 		if self.wandb_log:
 			wandb.config.update(kwargs)
 
-		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 		self.model.train()
 		
 		labels = list(set(dataset_train.targets.detach().tolist()))
@@ -266,7 +264,7 @@ class SOMTrainer():
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
 				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
 				for b, batch in enumerate(data_loader):
-					inputs, targets = batch[0].to(device), batch[1].to(device)
+					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
 					match kwargs["MODE"]:
 						case "STC":
@@ -299,7 +297,7 @@ class SOMTrainer():
 						if log_flag:
 
 							with torch.no_grad():
-								local_error=self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"], device=device)
+								local_error=self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 							plotter = Plotter(self.model, self.clip_images)
 							pil_image = plotter.create_pil_image()
 							wandb.log({	
@@ -338,7 +336,7 @@ class SOMTrainer():
 		return
 	
 
-	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int, device):
+	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int):
 
 		self.model.eval()
 		indices = torch.where(val_set.targets==label)[0].tolist()
@@ -350,7 +348,7 @@ class SOMTrainer():
 		
 		total_distance=0
 		for b, batch in enumerate(data_loader):
-			inputs, targets = batch[0].to(device), batch[1].to(device)
+			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
 
 			# look for the best matching unit (BMU)
