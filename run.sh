@@ -1,6 +1,6 @@
 #!/bin/bash	
 
-sleep 100000
+# sleep 100000
 
 # Add explicit logging of the starting script
 echo "Starting mnist.py execution at $(date)" >> log.out
