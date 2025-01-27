@@ -90,7 +90,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 
 if __name__ == '__main__':
 
-	
+	# os.environ["CUDA_VISIBLE_DEVICES"]="0"
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
