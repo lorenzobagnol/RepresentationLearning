@@ -116,13 +116,13 @@ def create_image_grid(vars0, vars1):
 	return
 
 	
-MODE="STC-modified"
+MODE="Base"
 
 if __name__=="__main__":
-	vars0 = {"values": [5, 4, 3],  # 3 different alpha values
+	vars0 = {"values": [5, 1, 0.2, 0],  # 3 different alpha values
 			 "name": "ALPHA"}	  
 			
-	vars1 = {"values": [10, 5, 2],  # 3 different targed radius values
+	vars1 = {"values": [10, 5, 2, 1.5],  # 3 different targed radius values
 		  	"name": "target_radius"}	
 		
 	create_image_grid(vars0, vars1)
