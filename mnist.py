@@ -45,24 +45,26 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		str: Message indicating the experiment completed.
 	"""
 	try:
-		entity = "replearn"
-		project = "STM-target-radius-experiment-MNIST"
-		api = wandb.Api()
-		filters = {
+		wandb_log = True
+		if wandb_log:
+			entity = "replearn"
+			project = "STM-target-radius-experiment-MNIST"
+			api = wandb.Api()
+			filters = {
 
-			"state": "finished",
-			"config.ALPHA": args[0],
-			"config.target_radius": args[1],
-			"config.MODE": args[2]
-		}
-		runs = api.runs(
-			path=f"{entity}/{project}",
-			filters=filters,
-			order="-created_at"
-		)
+				"state": "finished",
+				"config.ALPHA": args[0],
+				"config.target_radius": args[1],
+				"config.MODE": args[2]
+			}
+			runs = api.runs(
+				path=f"{entity}/{project}",
+				filters=filters,
+				order="-created_at"
+			)
 
-		if len(runs)!=0:
-			return f"run already exists"
+			if len(runs)!=0:
+				return f"run already exists"
 
 
 		# Creating a specific config with varying parameters for alpha and var2
@@ -78,7 +80,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		random.seed(config.SEED)
 
 		# Running the experiment
-		mnist_runner=Runner(config=config, dataset_name="target-radius-experiment-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
+		mnist_runner=Runner(config=config, dataset_name="target-radius-experiment-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=wandb_log)
 		mnist_runner.run()
 
 		return f"Experiment "+str(list(args))+" completed."
