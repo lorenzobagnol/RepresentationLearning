@@ -328,13 +328,20 @@ class SOMTrainer():
 				# 	print("Small local competence obtained : "+str(local_competence)+"\n")
 				# 	stop_flag = True
 				# 	break
-		with torch.no_grad():
-			loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
-		wandb.log({	
-			"loss_neighbourhood": loss_nei.item(),
-			"loss_target": loss_tar.item(),
-			"loss_base": loss_base.item(),
-		})
+		if self.wandb_log:
+			with torch.no_grad():
+				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+			wandb.log({	
+				"loss_neighbourhood": loss_nei.item(),
+				"loss_target": loss_tar.item(),
+				"loss_base": loss_base.item(),
+			})
+		else: 
+			with torch.no_grad():
+				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
+			with open("results.txt", "a") as f:
+				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
+				
 		if wandb.run is not None:
 			wandb.finish()
 		return
