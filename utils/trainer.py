@@ -282,7 +282,7 @@ class SOMTrainer():
 							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
 							if torch.min(max_weight_function)==0:
 								print("loss normalization contains zeros.")
-								continue
+								break
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
