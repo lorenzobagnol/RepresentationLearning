@@ -328,7 +328,13 @@ class SOMTrainer():
 				# 	print("Small local competence obtained : "+str(local_competence)+"\n")
 				# 	stop_flag = True
 				# 	break
-
+		with torch.no_grad():
+			loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+		wandb.log({	
+			"loss_neighbourhood": loss_nei.item(),
+			"loss_target": loss_tar.item(),
+			"loss_base": loss_base.item(),
+		})
 		if wandb.run is not None:
 			wandb.finish()
 		return
@@ -358,3 +364,36 @@ class SOMTrainer():
 
 		self.model.train()
 		return total_distance
+	
+	def compute_total_competence(self, val_set: Dataset, batch_size: int):
+
+		self.model.eval()
+		data_loader = torch.utils.data.DataLoader(val_set,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		loss_nei = 0
+		loss_tar = 0
+		loss_base = 0
+		min_radius=0.7
+		for b, batch in enumerate(data_loader):
+			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
+
+			neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=min_radius)
+			target_dist = self.model.target_distance_batch(targets, radius=min_radius)
+			weight_function = torch.mul(neighbourhood_func, target_dist)
+			loss_nei += torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func, norm_distance_matrix)))
+			loss_tar += torch.mul(1/2,torch.sum(torch.mul(target_dist, norm_distance_matrix)))
+			loss_base += torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+
+		loss_nei = torch.div(loss_nei, len(subset_val))
+		loss_tar = torch.div(loss_tar, len(subset_val))
+		loss_base = torch.div(loss_base, len(subset_val))
+		# total_distance= math.exp()
+
+		self.model.train()
+		return loss_nei, loss_tar, loss_base
+	
+
+
