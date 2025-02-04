@@ -100,15 +100,9 @@ if __name__ == '__main__':
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
-<<<<<<< HEAD
-	alphas = [5, 2, 1]  # 3 different alpha values
-	betas = [0.005, 0.01, 0.02]  # 3 different beta values
-	vieri_modes = ["", "STC"]
-=======
 	vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
 	vars1 = [10, 5, 2, 1.5]  # 3 different targed radius values
 	vars2 = ["Base", "STC-modified", "Base_Norm"]  # different mode values
->>>>>>> origin/experiments-with-target-distance-radius
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(vars0, vars1, vars2))

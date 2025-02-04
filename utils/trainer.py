@@ -264,37 +264,11 @@ class SOMTrainer():
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
 				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
 				for b, batch in enumerate(data_loader):
-<<<<<<< HEAD
-					inputs, targets = batch[0].to(device), batch[1].to(device)
-=======
 					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
->>>>>>> origin/experiments-with-target-distance-radius
 					norm_distance_matrix = self.model(inputs)
 					match kwargs["MODE"]:
 						case "STC":
 							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
-<<<<<<< HEAD
-						case "":
-							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
-							weight_function = torch.mul(neighbourhood_func, target_dist)
-						case "BGN":
-							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
-						case "Base_Norm":
-							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
-							weight_function = torch.mul(neighbourhood_func, target_dist)
-							max_weight_function = self.model.gaussian_product_normalizer(norm_distance_matrix, targets, radius=sigma_local)
-							if np.array(torch.min(max_weight_function).detach())<0.0000001:
-								print("Loss nulla ovunque")
-								break
-							else:
-								weight_function = torch.div(weight_function, torch.stack([max_weight_function for i in range(self.model.weights.shape[0])], 1))
-						case "Base-STC":
-							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
-							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
-
-=======
 						case "Base":
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
@@ -315,7 +289,6 @@ class SOMTrainer():
 						case "STC-modified":
 							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
 							
->>>>>>> origin/experiments-with-target-distance-radius
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 					if b==len(data_loader)-1 and self.wandb_log:
