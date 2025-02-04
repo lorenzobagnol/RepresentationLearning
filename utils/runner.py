@@ -26,6 +26,7 @@ class Runner():
 		self.dataset_train=train_dataset
 		self.dataset_val=val_dataset
 		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+		print("Device: ", self.device)
 		if (wandb==None or training_mode==None or model==None):
 			args = self.parse_arguments()
 			self.wandb_log=args.wandb_log
@@ -111,7 +112,7 @@ class Runner():
 			train_mode (str): Training mode, either 'simple_batch', 'pytorch_batch', or 'online'.
 		"""
 		
-		trainer = SOMTrainer(model, self.wandb_log, True)
+		trainer = SOMTrainer(model=model, device=self.device, wandb_log=self.wandb_log, clip_images=True)
 		if self.training_mode==None:
 			while True:
 				train_mode=input("Choose a training mode. Could be one of "+ str(trainer.available_training_modes()))
@@ -128,13 +129,13 @@ class Runner():
 		training_function = getattr(trainer, "train_"+self.training_mode)
 		match self.training_mode:
 			case "simple_batch":
-				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.simple_batch_config.to_dict(), **vars(self.config.variables), **self.config.som_config.to_dict())
 			case "online":
-				training_function(self.dataset_train, self.dataset_val, **self.config.online_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.online_config.to_dict(), **vars(self.config.variables), **self.config.som_config.to_dict())
 			case "pytorch_batch":
-				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.pytorch_batch_config.to_dict(), **vars(self.config.variables), **self.config.som_config.to_dict())
 			case "LifeLong":
-				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict(), **self.config.som_config.to_dict())
+				training_function(self.dataset_train, self.dataset_val, **self.config.lifelong_config.to_dict(), **vars(self.config.variables), **self.config.som_config.to_dict())
 		return
 
 	def run(self):

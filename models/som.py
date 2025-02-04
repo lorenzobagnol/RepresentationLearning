@@ -31,7 +31,11 @@ class SOM(nn.Module, ABC):
 			self.sigma = float(sigma)
 
 		w=torch.rand(m*n, self.input_data.dim)
+<<<<<<< HEAD
 		self.weights = torch.nn.Parameter(torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO Glorot initialization
+=======
+		self.weights = torch.nn.Parameter(1e-4*torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO verify
+>>>>>>> origin/experiments-with-target-distance-radius
 		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 		self.locations = torch.LongTensor(np.array(list(self.neuron_locations()))).to(self.device)
 
@@ -86,13 +90,37 @@ class SOM(nn.Module, ABC):
 
 		# look for the distances
 		dists = batch.unsqueeze(1).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) - self.weights.unsqueeze(0).expand((batch.shape[0], self.weights.shape[0], batch.shape[1])) # (batch_size, som_dim, image_tot_dim)
+<<<<<<< HEAD
 		dists = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
 
 		return dists
 	
 	def _compute_gaussian(self, points: torch.Tensor, radius: float):
+=======
+		dists_norm_sq = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
+
+		return dists_norm_sq
+>>>>>>> origin/experiments-with-target-distance-radius
 	
+	def _compute_gaussian(self, points: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+        Compute a normalized gaussian centered in a batch of points with a certain radius.
+
+        """
+
 		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
 		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
 		gaussian_func = torch.exp(torch.neg(torch.div(distance_squares, radius**2))) # (batch_size, som_dim)
 		return gaussian_func
+	
+	
+	def _compute_tanh(self, points: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+        Compute an hyperbolic tangent function centered in a batch of points with a certain radius.
+
+        """
+		
+		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
+		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
+		tanh_weight_function = torch.tanh(torch.div((radius**2),distance_squares))   
+		return tanh_weight_function

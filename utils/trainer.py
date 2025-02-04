@@ -17,10 +17,11 @@ from models.stm import STM
 
 class SOMTrainer():
 	
-	def __init__(self, model: Union[SOM,STM], wandb_log: bool, clip_images: bool = False):
+	def __init__(self, model: Union[SOM,STM], device, wandb_log: bool, clip_images: bool = False):
 		self.model = model
 		self.wandb_log = wandb_log
 		self.clip_images = clip_images
+		self.device = device
 
 	def available_training_modes(self):
 		if isinstance(self.model, STM):
@@ -63,12 +64,12 @@ class SOMTrainer():
 				sigma_op = self.model.sigma * learning_rate_op
 
 				# θ(u, v, s) is the neighborhood function which gives the distance between the BMU u and the generic neuron v in step s
-				bmu_distance_squares = torch.sum(torch.pow(self.model.locations.float() - torch.stack([bmu_loc for i in range(self.model.m*self.model.n)]).float(), 2), 1) # dim = self.model_dim = m*n
+				bmu_distance_squares = torch.sum(torch.pow(self.model.locations.float() - bmu_loc.unsqueeze(0).float(), 2), 1) # dim = self.model_dim = m*n
 				neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2)))
 				learning_rate_op = alpha_op * neighbourhood_func
 
 				learning_rate_multiplier = torch.stack([learning_rate_op[i:i+1]*np.ones(self.model.input_data.dim) for i in range(self.model.m*self.model.n)]) # dim = (m*n, input_dim)
-				delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.model.m*self.model.n)]) - self.model.weights))       # element-wise multiplication -> dim = (m*n, input_dim)
+				delta = torch.mul(learning_rate_multiplier, x.unsqueeze(0) - self.model.weights)       # element-wise multiplication -> dim = (m*n, input_dim)
 				new_weights = torch.add(self.model.weights, delta)
 				self.model.weights = torch.nn.Parameter(new_weights)
 				if self.wandb_log:
@@ -143,41 +144,70 @@ class SOMTrainer():
 		if self.wandb_log:
 			wandb.config.update(kwargs)
 
+
 		print("Creating a DataLoader object from dataset", end="     ", flush=True)
 		data_loader = torch.utils.data.DataLoader(dataset_train,
 											batch_size=kwargs["BATCH_SIZE"],
-											shuffle=True,)
+											shuffle=True,
+											drop_last=True)
 		print("\u2713", flush=True)
 		print("\n\n\n")
 		self.model.train()
-		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
+		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		for iter_no in tqdm(range(kwargs["EPOCHS"]), desc=f"Epochs", leave=True, position=0):
+			lr_local = math.exp(-kwargs["BETA"]*iter_no)
 			sigma_local = self.model.sigma*math.exp(-kwargs["BETA"]*iter_no)
 			for b, batch in enumerate(data_loader):
-				neighbourhood_func = self.model.neighbourhood_batch(batch, sigma_local)
+				inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+				norm_distance_matrix = self.model(inputs)
 				if isinstance(self.model, STM):
-					target_dist = self.model.target_distance_batch(batch, sigma_local)
-					weight_function = torch.mul(neighbourhood_func, target_dist)
+					match kwargs["MODE"]:
+						case "STC":
+							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
+						case "Base":
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+						case "BGN": # not working. Learn where it shouldn't learn
+							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
+						case "Base_Norm": # not working. Often divides by zero
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
+							if torch.max(max_weight_function)==0:
+								print("loss normalization zero everywhere")
+								if max(torch.sum(weight_function,1))==0:
+									print("also weight is 0")
+								continue
+							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
+						case "Base-STC":
+							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
+						case "STC-modified":
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
+							
 				else:
-					weight_function = neighbourhood_func
-				distance_matrix = batch[0].unsqueeze(1).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) - self.model.weights.unsqueeze(0).expand((batch[0].shape[0], self.model.weights.shape[0], batch[0].shape[1])) # dim = (batch_size, som_dim, input_dim) 
-				norm_distance_matrix = torch.sqrt(torch.sum(torch.pow(distance_matrix,2), 2)) # dim = (batch_size, som_dim) 
-				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function,norm_distance_matrix)))
+					weight_function = self.model.neighbourhood_batch(norm_distance_matrix, sigma_local)
 
+				loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+
+				if b==len(data_loader)-1 and self.wandb_log:
+					plotter = Plotter(self.model, self.clip_images)
+					pil_image = plotter.create_pil_image()
+					wandb.log({	
+						"weights": wandb.Image(pil_image),
+						"loss" : loss.item()
+					})
+
+				loss = torch.mul(lr_local, loss)
 				loss.backward()
+				torch.nn.utils.clip_grad_value_(self.model.parameters(), 10) #TODO verify
 				optimizer.step()
 				optimizer.zero_grad()
 
-			if self.wandb_log:
-				plotter = Plotter(self.model, self.clip_images)
-				pil_image = plotter.create_pil_image()
-				wandb.log({	
-					"weights": wandb.Image(pil_image),
-					"loss" : loss.item()
-				})
 		if wandb.run is not None:
 			wandb.finish()
-		return
+		return plotter
 
 	def train_LifeLong(self, dataset_train: Dataset, dataset_val: Dataset, **kwargs):
 		"""
@@ -202,8 +232,6 @@ class SOMTrainer():
 		if self.wandb_log:
 			wandb.config.update(kwargs)
 
-		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 		self.model.train()
 		
 		labels = list(set(dataset_train.targets.detach().tolist()))
@@ -211,7 +239,7 @@ class SOMTrainer():
 			if i not in labels:
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		
-		optimizer = torch.optim.Adam(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
+		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
 		
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
@@ -234,13 +262,18 @@ class SOMTrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
 				lr_local = math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.5)
+				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
 				for b, batch in enumerate(data_loader):
+<<<<<<< HEAD
 					inputs, targets = batch[0].to(device), batch[1].to(device)
+=======
+					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+>>>>>>> origin/experiments-with-target-distance-radius
 					norm_distance_matrix = self.model(inputs)
 					match kwargs["MODE"]:
 						case "STC":
 							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
+<<<<<<< HEAD
 						case "":
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
 							target_dist = self.model.target_distance_batch(targets, radius=sigma_local)
@@ -261,15 +294,41 @@ class SOMTrainer():
 							sigma_local = max(kwargs["SIGMA_BASELINE"]*math.exp(-kwargs["BETA"]*iter_no), 0.5)
 							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
 
+=======
+						case "Base":
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+						case "BGN": # not working. Learn where it shouldn't learn
+							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
+						case "Base_Norm": # not working. Often divides by zero
+							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
+							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							weight_function = torch.mul(neighbourhood_func, target_dist)
+							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
+							if torch.min(max_weight_function)==0:
+								print("loss normalization contains zeros.")
+								break
+							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
+						case "Base-STC":
+							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
+						case "STC-modified":
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
+							
+>>>>>>> origin/experiments-with-target-distance-radius
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
 					if b==len(data_loader)-1 and self.wandb_log:
 						if log_flag:
+
+							with torch.no_grad():
+								local_error=self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 							plotter = Plotter(self.model, self.clip_images)
 							pil_image = plotter.create_pil_image()
 							wandb.log({	
 								"weights": wandb.Image(pil_image),
 								"loss" : loss.item(),
+								"competence" : local_error.item(),
 							})
 						else:
 							wandb.log({	
@@ -290,16 +349,85 @@ class SOMTrainer():
 			# 	'optimizer_state_dict': optimizer.state_dict(),
 			# 	}, checkpoint_path)
 			
-				# with torch.no_grad():
-				# 	local_competence=self._compute_local_competence(val_set=dataset_val, label=i, batch_size=batch_size)
-				# 	print(local_competence)
 					
 				# if local_competence < 0.0001:
 				# 	print("Training interrupted for this subest after "+str(iter_no)+" epochs.")
 				# 	print("Small local competence obtained : "+str(local_competence)+"\n")
 				# 	stop_flag = True
 				# 	break
-
+		if self.wandb_log:
+			with torch.no_grad():
+				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+			wandb.log({	
+				"loss_neighbourhood": loss_nei.item(),
+				"loss_target": loss_tar.item(),
+				"loss_base": loss_base.item(),
+			})
+		else: 
+			with torch.no_grad():
+				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
+			with open("results.txt", "a") as f:
+				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
+				
 		if wandb.run is not None:
 			wandb.finish()
 		return
+	
+
+	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int):
+
+		self.model.eval()
+		indices = torch.where(val_set.targets==label)[0].tolist()
+		subset_val=torch.utils.data.Subset(val_set, indices)
+		data_loader = torch.utils.data.DataLoader(subset_val,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		
+		total_distance=0
+		for b, batch in enumerate(data_loader):
+			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
+
+			# look for the best matching unit (BMU)
+			_, bmu_indices = torch.min(norm_distance_matrix, 1) # som_dim
+			total_distance+=torch.sum(_)
+		
+		total_distance /= len(subset_val)
+		# total_distance= math.exp()
+
+		self.model.train()
+		return total_distance
+	
+	def compute_total_competence(self, val_set: Dataset, batch_size: int):
+
+		self.model.eval()
+		data_loader = torch.utils.data.DataLoader(val_set,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		loss_nei = 0
+		loss_tar = 0
+		loss_base = 0
+		min_radius=0.7
+		for b, batch in enumerate(data_loader):
+			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
+
+			neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=min_radius)
+			target_dist = self.model.target_distance_batch(targets, radius=min_radius)
+			weight_function = torch.mul(neighbourhood_func, target_dist)
+			loss_nei += torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func, norm_distance_matrix)))
+			loss_tar += torch.mul(1/2,torch.sum(torch.mul(target_dist, norm_distance_matrix)))
+			loss_base += torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+
+		loss_nei = torch.div(loss_nei, len(subset_val))
+		loss_tar = torch.div(loss_tar, len(subset_val))
+		loss_base = torch.div(loss_base, len(subset_val))
+		# total_distance= math.exp()
+
+		self.model.train()
+		return loss_nei, loss_tar, loss_base
+	
+
+
