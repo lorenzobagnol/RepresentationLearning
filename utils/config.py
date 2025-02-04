@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from typing import Any
 
 
 @dataclass
@@ -49,6 +50,12 @@ class OnlineConfig(BaseConfig):
     EPOCHS: int
 
 @dataclass
+class VARS(BaseConfig):
+    def __init__(self, **kargs: Any):
+        for key, value in kargs.items():
+            setattr(self, key, value)
+
+@dataclass
 class Config:
     """Master configuration class that can hold all the sub-configurations."""
     SEED: int
@@ -57,3 +64,5 @@ class Config:
     simple_batch_config: SimpleBatchConfig 
     pytorch_batch_config: PytorchBatchConfig 
     online_config: OnlineConfig 
+    variables: VARS
+
