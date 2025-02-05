@@ -258,11 +258,14 @@ class SOMTrainer():
 											drop_last=True
 											)
 			
-			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
+			#sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
+
+			initial_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
-				lr_local = math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
+				actual_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+				lr_local = actual_local_error/initial_local_error
+				sigma_local = max(self.model.sigma*actual_local_error/initial_local_error, 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
@@ -394,9 +397,9 @@ class SOMTrainer():
 			loss_tar += torch.mul(1/2,torch.sum(torch.mul(target_dist, norm_distance_matrix)))
 			loss_base += torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
-		loss_nei = torch.div(loss_nei, len(subset_val))
-		loss_tar = torch.div(loss_tar, len(subset_val))
-		loss_base = torch.div(loss_base, len(subset_val))
+		loss_nei = torch.div(loss_nei, len(val_set))
+		loss_tar = torch.div(loss_tar, len(val_set))
+		loss_base = torch.div(loss_base, len(val_set))
 		# total_distance= math.exp()
 
 		self.model.train()
