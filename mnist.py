@@ -53,9 +53,8 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 			filters = {
 
 				"state": "finished",
-				"config.ALPHA": args[0],
-				"config.target_radius": args[1],
-				"config.MODE": args[2]
+				"config.target_radius": args[0],
+				"config.MODE": args[1]
 			}
 			runs = api.runs(
 				path=f"{entity}/{project}",
