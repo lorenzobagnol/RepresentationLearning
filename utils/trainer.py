@@ -359,7 +359,6 @@ class SOMTrainer():
 										batch_size=batch_size,
 										shuffle=False,
 										)
-		
 		total_distance=0
 		for b, batch in enumerate(data_loader):
 			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
