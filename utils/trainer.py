@@ -256,11 +256,12 @@ class SOMTrainer():
 											shuffle=True,
 											drop_last=True
 											)
-			
-			initial_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+			with torch.no_grad():
+				initial_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
-				actual_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+				with torch.no_grad():
+					actual_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 				lr_local = actual_local_error/initial_local_error
 				sigma_local = max(self.model.sigma*actual_local_error/initial_local_error, 0.7)
 				for b, batch in enumerate(data_loader):
