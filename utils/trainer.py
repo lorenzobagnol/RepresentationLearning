@@ -394,10 +394,9 @@ class SOMTrainer():
 			loss_tar += torch.mul(1/2,torch.sum(torch.mul(target_dist, norm_distance_matrix)))
 			loss_base += torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 
-		loss_nei = torch.div(loss_nei, len(subset_val))
-		loss_tar = torch.div(loss_tar, len(subset_val))
-		loss_base = torch.div(loss_base, len(subset_val))
-		# total_distance= math.exp()
+		loss_nei = torch.div(loss_nei, len(val_set))
+		loss_tar = torch.div(loss_tar, len(val_set))
+		loss_base = torch.div(loss_base, len(val_set))
 
 		self.model.train()
 		return loss_nei, loss_tar, loss_base

@@ -48,7 +48,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		wandb_log = True
 		if wandb_log:
 			entity = "replearn"
-			project = "STM-target-radius-experiment-MNIST"
+			project = "STM-MNIST"
 			api = wandb.Api()
 			filters = {
 
@@ -80,11 +80,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		random.seed(config.SEED)
 
 		# Running the experiment
-<<<<<<< HEAD
 		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
-=======
-		mnist_runner=Runner(config=config, dataset_name="target-radius-experiment-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=wandb_log)
->>>>>>> origin/experiments-with-target-distance-radius
 		mnist_runner.run()
 
 		return f"Experiment "+str(list(args))+" completed."
