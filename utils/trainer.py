@@ -348,7 +348,6 @@ class SOMTrainer():
 
 	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int):
 
-		self.model.eval()
 		indices = torch.where(val_set.targets==label)[0].tolist()
 		subset_val=torch.utils.data.Subset(val_set, indices)
 		data_loader = torch.utils.data.DataLoader(subset_val,
@@ -367,12 +366,10 @@ class SOMTrainer():
 		total_distance /= len(subset_val)
 		# total_distance= math.exp()
 
-		self.model.train()
 		return total_distance
 	
 	def compute_total_competence(self, val_set: Dataset, batch_size: int):
 
-		self.model.eval()
 		data_loader = torch.utils.data.DataLoader(val_set,
 										batch_size=batch_size,
 										shuffle=False,
@@ -397,7 +394,6 @@ class SOMTrainer():
 		loss_base = torch.div(loss_base, len(val_set))
 		# total_distance= math.exp()
 
-		self.model.train()
 		return loss_nei, loss_tar, loss_base
 	
 
