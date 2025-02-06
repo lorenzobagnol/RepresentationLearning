@@ -240,7 +240,6 @@ class SOMTrainer():
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		
 		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
-		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
 		
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
 		for i in range(rep):
@@ -258,8 +257,6 @@ class SOMTrainer():
 											drop_last=True
 											)
 			
-			#sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
-
 			initial_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
@@ -316,7 +313,6 @@ class SOMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 
-			scheduler.step()
 			# # not found checkpoint folder in server
 			# checkpoint_path = os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
 			# torch.save({
@@ -343,7 +339,7 @@ class SOMTrainer():
 			with torch.no_grad():
 				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
 			with open("results.txt", "a") as f:
-				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
+				f.write(f"target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
 				
 		if wandb.run is not None:
 			wandb.finish()
