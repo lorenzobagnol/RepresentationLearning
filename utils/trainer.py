@@ -391,7 +391,7 @@ class SOMTrainer():
 			bmu_distance_sq, bmu_indices = torch.min(norm_distance_matrix, 1) # batch_size
 			bmu_loc = torch.stack([self.model.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2)
 
-			target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+			target_loc = torch.stack([self.model.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 			distance_bmu_target = torch.sum(torch.sqrt(torch.pow(target_loc-bmu_loc,2),1)) # batch_size
 			total_distance+=torch.sum(distance_bmu_target)
