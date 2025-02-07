@@ -330,29 +330,31 @@ class SOMTrainer():
 				# 	break
 		if self.wandb_log:
 			with torch.no_grad():
-				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+				loss_nei = self.compute_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
 			wandb.log({	
 				"loss_neighbourhood": loss_nei.item(),
-				"loss_target": loss_tar.item(),
-				"loss_base": loss_base.item(),
+				"distance_BMU_target": bmu_target_distance.item(),
 			})
 		else: 
 			with torch.no_grad():
-				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
+				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+				loss_nei = self.compute_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
 			with open("results.txt", "a") as f:
-				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
+				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, distance_BMU_target: {bmu_target_distance.item()} \n")
 				
 		if wandb.run is not None:
 			wandb.finish()
 		return
 	
 
-	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int):
+	def compute_competence(self, val_set: Dataset, batch_size: int, label: int =None):
 
-		self.model.eval()
-		indices = torch.where(val_set.targets==label)[0].tolist()
-		subset_val=torch.utils.data.Subset(val_set, indices)
-		data_loader = torch.utils.data.DataLoader(subset_val,
+		if label is not None:
+			indices = torch.where(val_set.targets==label)[0].tolist()
+			val_set=torch.utils.data.Subset(val_set, indices)
+
+		data_loader = torch.utils.data.DataLoader(val_set,
 										batch_size=batch_size,
 										shuffle=False,
 										)
@@ -363,43 +365,39 @@ class SOMTrainer():
 			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
 
 			# look for the best matching unit (BMU)
-			_, bmu_indices = torch.min(norm_distance_matrix, 1) # som_dim
-			total_distance+=torch.sum(_)
+			bmu_distance_sq, bmu_indices = torch.min(norm_distance_matrix, 1) # batch_size
+			total_distance+=torch.sum(bmu_distance_sq)
 		
-		total_distance /= len(subset_val)
-		# total_distance= math.exp()
+		total_distance /= len(val_set)
 
-		self.model.train()
 		return total_distance
 	
-	def compute_total_competence(self, val_set: Dataset, batch_size: int):
+	def compute_BMU_target_distance(self, val_set: Dataset, batch_size: int, label: int =None):
 
-		self.model.eval()
+		if label is not None:
+			indices = torch.where(val_set.targets==label)[0].tolist()
+			val_set=torch.utils.data.Subset(val_set, indices)
+
 		data_loader = torch.utils.data.DataLoader(val_set,
 										batch_size=batch_size,
 										shuffle=False,
 										)
-		loss_nei = 0
-		loss_tar = 0
-		loss_base = 0
-		min_radius=0.7
+		
+		total_distance=0
 		for b, batch in enumerate(data_loader):
 			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 			norm_distance_matrix = self.model(inputs) # (batch_size, som_dim)
 
-			neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=min_radius)
-			target_dist = self.model.target_distance_batch(targets, radius=min_radius)
-			weight_function = torch.mul(neighbourhood_func, target_dist)
-			loss_nei += torch.mul(1/2,torch.sum(torch.mul(neighbourhood_func, norm_distance_matrix)))
-			loss_tar += torch.mul(1/2,torch.sum(torch.mul(target_dist, norm_distance_matrix)))
-			loss_base += torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+			bmu_distance_sq, bmu_indices = torch.min(norm_distance_matrix, 1) # batch_size
+			bmu_loc = torch.stack([self.model.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2)
 
-		loss_nei = torch.div(loss_nei, len(val_set))
-		loss_tar = torch.div(loss_tar, len(val_set))
-		loss_base = torch.div(loss_base, len(val_set))
+			target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
-		self.model.train()
-		return loss_nei, loss_tar, loss_base
+			distance_bmu_target = torch.sum(torch.sqrt(torch.pow(target_loc-bmu_loc,2),1)) # batch_size
+			total_distance+=torch.sum(distance_bmu_target)
+		
+		total_distance /= len(val_set)
+
+		return total_distance
 	
-
 

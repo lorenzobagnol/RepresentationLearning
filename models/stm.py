@@ -38,7 +38,7 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[np.int32(targets)[i]] for i in range(targets.shape[0])]) # (batch_size, 2) 
+		target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 
 		target_dist_func = self._compute_gaussian(target_loc, radius) # (batch_size, som_dim)
 
@@ -58,13 +58,13 @@ class STM(SOM):
         """
 		# look for the best matching unit (BMU)
 		# compute mask around the target point
-		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
 		target_distances_squares = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
 		mask = (target_distances_squares<radius).to(self.device) # (batch_size, som_dim)
 
-		masked_distances = torch.where(mask, dists, torch.tensor(float('inf')))
-		_, bmu_indices = torch.min(masked_distances, 1) # som_dim
+		masked_distances = torch.where(mask, dists, torch.tensor(float('inf'))) # (batch_size, som_dim)
+		_, bmu_indices = torch.min(masked_distances, 1) # batch_size
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
 		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)	
