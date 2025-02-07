@@ -295,7 +295,7 @@ class SOMTrainer():
 						if log_flag:
 
 							with torch.no_grad():
-								local_error=self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+								local_error=self.compute_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 							plotter = Plotter(self.model, self.clip_images)
 							pil_image = plotter.create_pil_image()
 							wandb.log({	

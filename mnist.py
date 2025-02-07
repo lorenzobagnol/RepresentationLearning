@@ -80,7 +80,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		random.seed(config.SEED)
 
 		# Running the experiment
-		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
+		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=wandb_log)
 		mnist_runner.run()
 
 		return f"Experiment "+str(list(args))+" completed."
