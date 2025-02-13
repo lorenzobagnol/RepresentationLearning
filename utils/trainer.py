@@ -240,7 +240,6 @@ class SOMTrainer():
 				raise Exception("Dataset labels must be consecutive starting from zero.")
 		
 		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
-		scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: max(kwargs["LR_GLOBAL_BASELINE"],math.exp(-kwargs["ALPHA"]*epoch)))
 		
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
 		for i in range(rep):
@@ -257,12 +256,14 @@ class SOMTrainer():
 											shuffle=True,
 											drop_last=True
 											)
-			
-			sigma_global = max(self.model.sigma*math.exp(-kwargs["ALPHA"]*i),kwargs["SIGMA_BASELINE"])
+			with torch.no_grad():
+				initial_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				log_flag=iter_no==kwargs["EPOCHS_PER_SUBSET"]-1
-				lr_local = math.exp(-kwargs["BETA"]*iter_no)
-				sigma_local = max(sigma_global*math.exp(-kwargs["BETA"]*iter_no), 0.7)
+				with torch.no_grad():
+					actual_local_error = self.compute_local_competence(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
+				lr_local = actual_local_error/initial_local_error
+				sigma_local = max(self.model.sigma*actual_local_error/initial_local_error, 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
@@ -313,7 +314,6 @@ class SOMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 
-			scheduler.step()
 			# # not found checkpoint folder in server
 			# checkpoint_path = os.path.join(os.path.curdir,"checkpoint", "checkpoint.pt")
 			# torch.save({
@@ -340,7 +340,7 @@ class SOMTrainer():
 			with torch.no_grad():
 				loss_nei, loss_tar, loss_base = self.compute_total_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
 			with open("results.txt", "a") as f:
-				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
+				f.write(f"target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, loss_target:{loss_tar.item()}, loss_base:{loss_base.item()}\n")
 				
 		if wandb.run is not None:
 			wandb.finish()
@@ -349,14 +349,12 @@ class SOMTrainer():
 
 	def compute_local_competence(self, val_set: Dataset, label: int, batch_size: int):
 
-		self.model.eval()
 		indices = torch.where(val_set.targets==label)[0].tolist()
 		subset_val=torch.utils.data.Subset(val_set, indices)
 		data_loader = torch.utils.data.DataLoader(subset_val,
 										batch_size=batch_size,
 										shuffle=False,
 										)
-		
 		total_distance=0
 		for b, batch in enumerate(data_loader):
 			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
@@ -369,12 +367,10 @@ class SOMTrainer():
 		total_distance /= len(subset_val)
 		# total_distance= math.exp()
 
-		self.model.train()
 		return total_distance
 	
 	def compute_total_competence(self, val_set: Dataset, batch_size: int):
 
-		self.model.eval()
 		data_loader = torch.utils.data.DataLoader(val_set,
 										batch_size=batch_size,
 										shuffle=False,
@@ -397,8 +393,8 @@ class SOMTrainer():
 		loss_nei = torch.div(loss_nei, len(val_set))
 		loss_tar = torch.div(loss_tar, len(val_set))
 		loss_base = torch.div(loss_base, len(val_set))
+		# total_distance= math.exp()
 
-		self.model.train()
 		return loss_nei, loss_tar, loss_base
 	
 

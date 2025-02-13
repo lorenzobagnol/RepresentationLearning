@@ -48,14 +48,13 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		wandb_log = True
 		if wandb_log:
 			entity = "replearn"
-			project = "STM-MNIST"
+			project = "STM-competence-decay-MNIST"
 			api = wandb.Api()
 			filters = {
 
 				"state": "finished",
-				"config.ALPHA": args[0],
-				"config.target_radius": args[1],
-				"config.MODE": args[2]
+				"config.target_radius": args[0],
+				"config.MODE": args[1]
 			}
 			runs = api.runs(
 				path=f"{entity}/{project}",
@@ -71,16 +70,16 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=args[0], BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE=args[2]),
+			lifelong_config=LifeLongConfig(ALPHA=None, BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE=args[1]),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1),
-			variables=VARS(target_radius=args[1])
+			variables=VARS(target_radius=args[0])
 		)
 		random.seed(config.SEED)
 
 		# Running the experiment
-		mnist_runner=Runner(config=config, dataset_name="MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=True)
+		mnist_runner=Runner(config=config, dataset_name="competence-decay-MNIST", input_data=input_data, train_dataset=dataset_train, val_dataset=dataset_val, model="stm", training_mode="LifeLong", wandb=wandb_log)
 		mnist_runner.run()
 
 		return f"Experiment "+str(list(args))+" completed."
@@ -96,12 +95,12 @@ if __name__ == '__main__':
 	input_data = InputData((28, 28), 1, "Unit")
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
-	vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
+	# vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
 	vars1 = [10, 5, 2, 1.5]  # 3 different targed radius values
 	vars2 = ["Base", "STC-modified", "Base_Norm"]  # different mode values
 
 	# Create 9 combinations of alpha and beta values
-	param_combinations = list(product(vars0, vars1, vars2))
+	param_combinations = list(product(vars1, vars2))
 
 	# # use this line if using ProcessPoolExecutor
 	# mp.set_start_method('spawn', force=True)
@@ -116,6 +115,6 @@ if __name__ == '__main__':
 	# 	for future in futures:
 	# 		print(future.result())
 
-	for (var1, var2, var3) in param_combinations:
-		run_experiment( var1, var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
+	for (var2, var3) in param_combinations:
+		run_experiment( var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
 
