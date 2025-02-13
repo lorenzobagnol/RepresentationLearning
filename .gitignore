@@ -3,3 +3,5 @@ MNIST/
 cifar-10-batches-py
 __pycache__/
 *wandb/
+weights-and-losses/*
+!weights-and-losses/create_image_grid.py

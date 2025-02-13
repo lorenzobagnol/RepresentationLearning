@@ -340,7 +340,7 @@ class SOMTrainer():
 			with torch.no_grad():
 				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
 				loss_nei = self.compute_competence(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])			
-			with open("results.txt", "a") as f:
+			with open(".\\weights-and-losses\\results.txt", "a") as f:
 				f.write(f"ALPHA:{kwargs['ALPHA']}, target_radius:{kwargs['target_radius']}, MODE:{kwargs['MODE']}, loss_neighbourhood:{loss_nei.item()}, distance_BMU_target: {bmu_target_distance.item()} \n")
 				
 		if wandb.run is not None:
