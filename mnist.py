@@ -46,31 +46,31 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 	"""
 	try:
 		wandb_log = False
-		if wandb_log:
-			entity = "replearn"
-			project = "STM-competence-decay-MNIST"
-			api = wandb.Api()
-			filters = {
+		# if wandb_log:
+		# 	entity = "replearn"
+		# 	project = "STM-competence-decay-MNIST"
+		# 	api = wandb.Api()
+		# 	filters = {
 
-				"state": "finished",
-				"config.target_radius": args[0],
-				"config.MODE": args[1]
-			}
-			runs = api.runs(
-				path=f"{entity}/{project}",
-				filters=filters,
-				order="-created_at"
-			)
+		# 		"state": "finished",
+		# 		"config.SEED": args[0],
+		# 		"config.MODE": args[1]
+		# 	}
+		# 	runs = api.runs(
+		# 		path=f"{entity}/{project}",
+		# 		filters=filters,
+		# 		order="-created_at"
+		# 	)
 
-			if len(runs)!=0:
-				return f"run already exists"
+		# 	if len(runs)!=0:
+		# 		return f"run already exists"
 
 
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, SIGMA=10),
-			lifelong_config=LifeLongConfig(ALPHA=None, BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE=args[1], target_radius=args[0]),
+			lifelong_config=LifeLongConfig(ALPHA=None, BETA=0.02, BATCH_SIZE=20, EPOCHS_PER_SUBSET=200, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE="Base", target_radius=1.5),
 			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=1, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01),
 			online_config=OnlineConfig(EPOCHS=1),
@@ -96,8 +96,8 @@ if __name__ == '__main__':
 	dataset_train, dataset_val = create_dataset(input_data=input_data)
 
 	# vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
-	vars1 = [10, 5, 2, 1.5]  # 3 different targed radius values
-	vars2 = ["Base", "STC-modified", "Base_Norm"]  # different mode values
+	vars1 = list(range(10))  # 10 different seeds
+	vars2 = "Base"  # different mode values
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(vars1, vars2))
@@ -115,6 +115,6 @@ if __name__ == '__main__':
 	# 	for future in futures:
 	# 		print(future.result())
 
-	for (var2, var3) in param_combinations:
-		run_experiment( var2, var3, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
+	for (var1, var2) in param_combinations:
+		run_experiment( var1, var2, input_data=input_data, dataset_train=dataset_train, dataset_val=dataset_val)
 
