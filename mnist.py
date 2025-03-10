@@ -45,7 +45,7 @@ def run_experiment(*args, input_data, dataset_train, dataset_val):
 		str: Message indicating the experiment completed.
 	"""
 	try:
-		wandb_log = False
+		wandb_log = True
 		# if wandb_log:
 		# 	entity = "replearn"
 		# 	project = "STM-competence-decay-MNIST"
