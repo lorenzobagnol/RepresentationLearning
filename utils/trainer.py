@@ -1,11 +1,10 @@
-import os
 import torch
 import numpy as np
 from torch.utils.data import Dataset
 from tqdm import tqdm
 import wandb
 import math
-import PIL
+import random
 import matplotlib.pyplot as plt
 from typing import Sequence, Union
 
@@ -242,7 +241,10 @@ class SOMTrainer():
 		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
-		for i in range(rep):
+		list_labels = [i for i in range(rep)]
+		random.seed(kwargs["SEED"])
+		list_labels = random.shuffle(list_labels)
+		for i in list_labels:
 			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
 			if kwargs["DISJOINT_TRAINING"]:
 				indices = torch.where((dataset_train.targets>=i*kwargs["SUBSET_SIZE"]) & (dataset_train.targets<(i+1)*kwargs["SUBSET_SIZE"]))[0].tolist()
@@ -265,20 +267,20 @@ class SOMTrainer():
 				lr_local = actual_local_error/initial_local_error
 				sigma_local = max(self.model.sigma*actual_local_error/initial_local_error, 0.7)
 				for b, batch in enumerate(data_loader):
-					inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
 					match kwargs["MODE"]:
 						case "STC":
-							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, targets, radius=sigma_local)
+							weight_function = self.model.neighbourhood_batch_vieri(norm_distance_matrix, labels, radius=sigma_local)
 						case "Base":
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							target_dist = self.model.target_distance_batch(labels, radius=kwargs["target_radius"], )
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 						case "BGN": # not working. Learn where it shouldn't learn
-							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, targets, radius=sigma_local)
+							weight_function = self.model.target_and_bmu_weighted_batch(norm_distance_matrix, labels, radius=sigma_local)
 						case "Base_Norm": # not working. Often divides by zero
 							neighbourhood_func = self.model.neighbourhood_batch(norm_distance_matrix, radius=sigma_local)
-							target_dist = self.model.target_distance_batch(targets, radius=kwargs["target_radius"])
+							target_dist = self.model.target_distance_batch(labels, radius=kwargs["target_radius"])
 							weight_function = torch.mul(neighbourhood_func, target_dist)
 							max_weight_function = torch.max(weight_function,1).values # (batch_size, som_dim)
 							if torch.min(max_weight_function)==0:
@@ -286,9 +288,9 @@ class SOMTrainer():
 								break
 							weight_function = torch.div(weight_function, max_weight_function.unsqueeze(1))
 						case "Base-STC":
-							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, targets, radius=sigma_local)
+							weight_function = self.model.hybrid_weight_function(norm_distance_matrix, labels, radius=sigma_local)
 						case "STC-modified":
-							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, targets, radius=sigma_local, target_radius=kwargs["target_radius"])
+							weight_function = self.model.neighbourhood_batch_vieri_modified(norm_distance_matrix, labels, radius=sigma_local, target_radius=kwargs["target_radius"])
 							
 					loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
 

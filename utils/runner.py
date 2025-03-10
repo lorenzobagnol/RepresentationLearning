@@ -80,9 +80,10 @@ class Runner():
 				]
 			)
 		points_list=np.int32(points*min(self.config.som_config.M, self.config.som_config.N)).tolist()
-		random.seed(13)
-		random.shuffle(points_list)
-		dict_points={k : torch.Tensor(v).to(self.device) for k,v in enumerate(points_list)}
+		random.seed(self.config.variables.SEED)
+		index_list = list(range(len(points_list)))
+		random.shuffle(index_list)
+		dict_points={k : torch.Tensor(v).to(self.device) for k,v in zip(index_list, points_list)}
 		return dict_points
 
 	def parse_arguments(self):

@@ -27,7 +27,7 @@ class STM(SOM):
 
 			
 	
-	def target_distance_batch(self, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def target_distance_batch(self, labels: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
 		Computes the distance between the SOM (Self-Organizing Map) nodes and target points for a given batch of data.
 
@@ -38,14 +38,14 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc = torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 
 		target_dist_func = self._compute_gaussian(target_loc, radius) # (batch_size, som_dim)
 
 		return target_dist_func
 
 
-	def neighbourhood_batch_vieri(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def neighbourhood_batch_vieri(self, dists: torch.Tensor, labels: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
@@ -58,7 +58,7 @@ class STM(SOM):
         """
 		# look for the best matching unit (BMU)
 		# compute mask around the target point
-		target_loc = torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc = torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 		target_distances = self.locations.float() - target_loc.unsqueeze(1)	# (batch_size, som_dim, 2)
 		target_distances_squares = torch.sqrt(torch.sum(torch.pow(target_distances, 2), 2)) # (batch_size, som_dim)
 		mask = (target_distances_squares<radius).to(self.device) # (batch_size, som_dim)
@@ -71,7 +71,7 @@ class STM(SOM):
 		return neighbourhood_func
 
 
-	def target_and_bmu_weighted_batch(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def target_and_bmu_weighted_batch(self, dists: torch.Tensor, labels: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
 		Computes the gaussian centered in an average points of target and BMU
 
@@ -82,7 +82,7 @@ class STM(SOM):
 		Returns:
             torch.Tensor: shape = (batch_size, som_dim) containing distances.
 		"""
-		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 
 		# look for the best matching unit (BMU)
 		_, bmu_indices = torch.min(dists, 1) # som_dim
@@ -97,7 +97,7 @@ class STM(SOM):
 
 		return average_dist_func
 
-	def hybrid_weight_function(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def hybrid_weight_function(self, dists: torch.Tensor, labels: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
@@ -112,21 +112,21 @@ class STM(SOM):
 		_, bmu_indices = torch.min(dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 		# compute target points
-		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 		# compute distance from target points and BMUs in the batch
 		bmu_target_distances = torch.sqrt(torch.sum(torch.pow(bmu_loc-target_loc,2), 1)) # (batch_size)
 
 		if (torch.max(bmu_target_distances)>5.): # Vieri mode
-			hybrid_weight_function = self.neighbourhood_batch_vieri(dists, targets, radius=radius)
+			hybrid_weight_function = self.neighbourhood_batch_vieri(dists, labels, radius=radius)
 		else:  # base mode
 			neighbourhood_func = self.neighbourhood_batch(dists, radius=radius)
-			target_dist = self.target_distance_batch(targets, radius=radius)
+			target_dist = self.target_distance_batch(labels, radius=radius)
 			hybrid_weight_function = torch.mul(neighbourhood_func, target_dist)
 
 		return hybrid_weight_function
 	
 
-	def neighbourhood_batch_vieri_modified(self, dists: torch.Tensor, targets: torch.Tensor, radius: float, target_radius: float) -> torch.Tensor:
+	def neighbourhood_batch_vieri_modified(self, dists: torch.Tensor, labels: torch.Tensor, radius: float, target_radius: float) -> torch.Tensor:
 		"""
         Compute the neighborhood function for a batch of inputs.
 
@@ -138,7 +138,7 @@ class STM(SOM):
             torch.Tensor: Neighborhood function values.
         """
 
-		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 		weighted_dists = torch.mul(dists, torch.neg(self._compute_gaussian(target_loc, radius)))
 		_, bmu_indices = torch.min(weighted_dists, 1) # som_dim
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
@@ -147,9 +147,9 @@ class STM(SOM):
 		
 		return neighbourhood_func
 
-	def gaussian_product_normalizer(self, dists: torch.Tensor, targets: torch.Tensor, radius: float) -> torch.Tensor:
+	def gaussian_product_normalizer(self, dists: torch.Tensor, labels: torch.Tensor, radius: float) -> torch.Tensor:
 
-		target_loc=torch.stack([self.target_points[int(label)] for label in targets]) # (batch_size, 2) 
+		target_loc=torch.stack([self.target_points[int(label)] for label in labels]) # (batch_size, 2) 
 
 		# look for the best matching unit (BMU)
 		_, bmu_indices = torch.min(dists, 1) # som_dim
