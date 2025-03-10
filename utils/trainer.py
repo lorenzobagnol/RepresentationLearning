@@ -243,7 +243,7 @@ class SOMTrainer():
 		rep = math.ceil(len(labels)/kwargs["SUBSET_SIZE"])
 		list_labels = [i for i in range(rep)]
 		random.seed(kwargs["SEED"])
-		list_labels = random.shuffle(list_labels)
+		random.shuffle(list_labels)
 		for i in list_labels:
 			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
 			if kwargs["DISJOINT_TRAINING"]:
