@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
 	# vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
 	vars1 = list(range(10))  # 10 different seeds
-	vars2 = "Base"  # different mode values
+	vars2 = ["Base"]  # different mode values
 
 	# Create 9 combinations of alpha and beta values
 	param_combinations = list(product(vars1, vars2))
