@@ -19,3 +19,5 @@ RUN /root/miniconda3/bin/conda run -n main pip install --no-cache-dir -r /requir
 ENV WANDB_API_KEY=2aa2cc64e8422604fbbc4711274a7680f8ce951b
 
 WORKDIR /workspace
+
+# CMD
