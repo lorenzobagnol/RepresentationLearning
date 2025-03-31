@@ -471,9 +471,9 @@ class TopologicalAETrainer():
 				optimizer.zero_grad()
 				inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 				reconstructed, topological_output = self.model(inputs)
-				loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
-				loss = torch.mul(lr_local, loss)
-				
+				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
+				loss = torch.add(reconstruction_loss, map_loss)
+
 				loss.backward()
 				optimizer.step()
 				optimizer.zero_grad()
@@ -483,9 +483,12 @@ class TopologicalAETrainer():
 					wandb.log({	
 						"som_weights": wandb.Image(topological_map_image),
 						"decoder_output": wandb.Image(reconstructed_image),
+						"reconstruction_loss" : reconstruction_loss.item(),
+						"map_loss" : map_loss.item(),
 						"loss" : loss.item()
 					})
 
+				loss = torch.mul(lr_local, loss)
 
 		if wandb.run is not None:
 			wandb.finish()

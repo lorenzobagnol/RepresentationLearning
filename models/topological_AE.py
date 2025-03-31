@@ -115,7 +115,7 @@ class TopologicalAELoss():
 		self.stm_loss = STMLoss(self.model.topological_map, device, mode, target_points)
 
 
-	def __call__(self, x:torch.Tensor, reconstructed:torch.Tensor, topological_output, sigma_local:float, target_radius:float, labels, gamma:float=0.5):
+	def __call__(self, x:torch.Tensor, reconstructed:torch.Tensor, topological_output, sigma_local:float, target_radius:float, labels):
 
 		MSE = nn.MSELoss(reduction="sum")
 		reconstruction_loss = MSE(
@@ -124,7 +124,7 @@ class TopologicalAELoss():
 		
 		map_loss = self.stm_loss(topological_output, labels, sigma_local, target_radius)
 
-		return reconstruction_loss + gamma * map_loss
+		return reconstruction_loss, map_loss
 
 if __name__ == "__main__":
 
