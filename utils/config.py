@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import Any
+from utils.inputdata import InputData
 
 
 @dataclass
@@ -13,11 +14,17 @@ class SOMConfig(BaseConfig):
     """Configuration for SOM."""
     M: int
     N: int
-    SIGMA: float
+    INPUT_DATA: InputData
+
+@dataclass
+class WandBConfig(BaseConfig):
+    """Configuration for WeightsAndBiases."""
+    PROJECT: str
 
 @dataclass
 class LifeLongConfig(BaseConfig):
     """Configuration for lifelong learning."""
+    SIGMA: float
     ALPHA: float
     BETA: float
     BATCH_SIZE: int
@@ -32,6 +39,7 @@ class LifeLongConfig(BaseConfig):
 @dataclass
 class SimpleBatchConfig(BaseConfig):
     """Simple batch training configuration."""
+    SIGMA: float
     EPOCHS: int
     BATCH_SIZE: int
     BETA: float
@@ -39,14 +47,17 @@ class SimpleBatchConfig(BaseConfig):
 @dataclass
 class PytorchBatchConfig(BaseConfig):
     """PyTorch-specific batch training configuration."""
+    SIGMA: float
     EPOCHS: int
     BATCH_SIZE: int
     LEARNING_RATE: float
     BETA: float
+    MODE: str
 
 @dataclass
 class OnlineConfig(BaseConfig):
     """Online training configuration."""
+    SIGMA: float
     EPOCHS: int
 
 @dataclass
@@ -59,8 +70,9 @@ class VARS(BaseConfig):
 class Config:
     """Master configuration class that can hold all the sub-configurations."""
     SEED: int
+    weights_and_biases_config: WandBConfig
     som_config: SOMConfig 
-    lifelong_config: LifeLongConfig 
+    LifeLong_config: LifeLongConfig 
     simple_batch_config: SimpleBatchConfig 
     pytorch_batch_config: PytorchBatchConfig 
     online_config: OnlineConfig 

@@ -1,17 +1,19 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from typing import Sequence, Union
+from typing import Sequence, Tuple, Union
 import PIL
 import io
+from PIL.Image import Image
 
 from models.som import SOM
-from models.stm import STM
+from models.stm import TargetPoints
+from models.topological_AE import TopologicalAE 
 
 
-class Plotter():
+class SOMPlotter():
 
-	def __init__(self, model: Union[SOM,STM], clip_image: bool = False):
+	def __init__(self, model: SOM, clip_image: bool = False):
 		self.model = model
 		self.clip_image = clip_image
 
@@ -31,27 +33,27 @@ class Plotter():
 			return np.clip(image_grid, 0, 1)
 		return np.array(image_grid)
 	
-	def resize_image(self, image_grid: np.ndarray):
+	def resize_image(self, image_grid: np.ndarray, target_points: TargetPoints=None) -> plt.Figure:
 		target_width = 800  
 		target_height = 800  
 		dpi_value = min(300, max(72, target_width / image_grid.shape[1]))
 		figsize_x = target_width / dpi_value
 		figsize_y = target_height / dpi_value
 		fig, ax = plt.subplots(figsize=(figsize_x, figsize_y), dpi=dpi_value)
-		if isinstance(self.model, STM):
+		if target_points is not None:
 			base_font_size = 24  
 			font_size = base_font_size * (dpi_value / 100)  
-			for key, value in self.model.target_points.items():
-				ax.text(value.cpu()[0]*self.model.input_data.dim1, value.cpu()[1]*self.model.input_data.dim2, str(key), ha='center', va='center',
+			for point in target_points.points:
+				ax.text(point.value.cpu()[0]*self.model.input_data.dim1, point.value.cpu()[1]*self.model.input_data.dim2, str(point.label), ha='center', va='center',
 					bbox=dict(facecolor='white', alpha=0.7, lw=0, pad=0),  fontsize=font_size)
 		ax.imshow(image_grid)
 		ax.axis("off")
 
 		return fig
 	
-	def create_pil_image(self):
+	def create_pil_image(self, target_points: TargetPoints=None) -> Image:
 		self.image_grid = self.create_image_grid()
-		fig = self.resize_image(self.image_grid)
+		fig = self.resize_image(self.image_grid, target_points)
 		 # Save the figure to a buffer
 		buf = io.BytesIO()
 		fig.savefig(buf, format='png', bbox_inches='tight')
@@ -62,5 +64,64 @@ class Plotter():
 		plt.close(fig)  # Close the figure to free memory
 		buf.close()  # Close the buffer
 		return pil_image
+		
+
+class TopologicalAEPlotter():
+
+	def __init__(self, model: TopologicalAE, clip_image: bool = False):
+		self.model = model
+		self.clip_image = clip_image
+		self.som_plotter = SOMPlotter(self.model.topological_map, self.clip_image)
+
+	
+	def create_pil_image(self, target_points: TargetPoints=None) -> Tuple[Image, Image]:
+		"""
+		Create a PIL image of the topological map and of the reconstructed images of the AE model from the target points.
+		
+		Args:
+			model (TopologicalAE): The model of Topological Autoencoder.
+		
+		Returns:
+			PIL image: The PIL image of the topological map.
+			PIL image: The PIL image of the generated images.
+		"""
+		topological_map_image = self.som_plotter.create_pil_image(target_points)
+		reconstructed_image = self.create_reconstructed_image(target_points)
+		return topological_map_image, reconstructed_image
+	
+
+	def create_reconstructed_image(self, target_points: TargetPoints) -> Image:
+		"""
+		Create a PIL image of the reconstructed images of the AE model from the target points.
+		
+		Args:
+			model (TopologicalAE): The model of Topological Autoencoder.
+		
+		Returns:
+			PIL image: The PIL image of the generated images.
+		"""
+		
+		point_loc = torch.cat([point.value for point in target_points.points], 0) # (n_points, 2)
+		point_weights = self.model.topological_map.get_weights()[point_loc.long()] # (n_points, latent_dim)
+		reconstructed_images = self.model.decode(point_weights) # (n_points, image_tot_dim)
+		
+		# Transform to a PIL image
+		fig, ax = plt.subplots(1, len(reconstructed_images), figsize=(len(reconstructed_images)*4, 4))
+		for i, image in enumerate(reconstructed_images):
+			image = image.detach().cpu()
+			if self.clip_image:
+				image = np.clip(image, 0, 1)
+			ax[i].imshow(image[0])
+			ax[i].axis("off")
+		# Save the figure to a buffer
+		buf = io.BytesIO()	
+		fig.savefig(buf, format='png', bbox_inches='tight')
+		buf.seek(0)
+		# Create a PIL image from the buffer
+		pil_image = PIL.Image.open(buf).copy()
+		plt.close(fig)
+		buf.close()
+		return pil_image
+
 		
 

@@ -11,7 +11,7 @@ class SOM(nn.Module, ABC):
 	"""
 	Class of Self-Organizing Map.
 	"""
-	def __init__(self, m: int , n: int, input_data: InputData, sigma: float = None):
+	def __init__(self, m: int , n: int, input_data: InputData):
 		"""
         Initialize the class for the SOM network.
 
@@ -25,10 +25,6 @@ class SOM(nn.Module, ABC):
 		self.m = m
 		self.n = n
 		self.input_data = input_data
-		if sigma is None:
-			self.sigma = max(m, n) / 2.0
-		else:
-			self.sigma = float(sigma)
 
 		w=torch.rand(m*n, self.input_data.dim)
 		self.weights = torch.nn.Parameter(1e-4*torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO verify
@@ -53,25 +49,24 @@ class SOM(nn.Module, ABC):
 							key=lambda x: np.linalg.norm(vect-self.weights[x].detach()))
 			to_return.append(self.locations[min_index])
 		return to_return
-
-	def neighbourhood_batch(self, dists: torch.Tensor, radius: float) -> torch.Tensor:
+	
+	
+	def find_bmu(self, dists: torch.Tensor) -> torch.Tensor:
 		"""
-        Compute the neighborhood function for a batch of inputs.
+		Compute the best matching unit (BMU) for a batch of inputs.
 
-        Args:
-            dists (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
-			radius (float): Variance of the gaussian.
-
-        Returns:
-            torch.Tensor: Neighborhood function values.
+		Args:
+			dists (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
+		
         """
 
 		# look for the best matching unit (BMU)
-		_, bmu_indices = torch.min(dists, 1) # som_dim
+		min_dist, bmu_indices = torch.min(dists, 1) # som_dim
+		bmu = self.weights[bmu_indices] # (batch_size, image_tot_dim)
 		bmu_loc = torch.stack([self.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2) 
 
-		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)
-		return neighbourhood_func
+		return bmu, bmu_loc
+	
 
 	def forward(self, batch: torch.Tensor) -> torch.Tensor:
 		"""
@@ -89,14 +84,60 @@ class SOM(nn.Module, ABC):
 		dists_norm_sq = torch.sum(torch.pow(dists,2), 2) # (batch_size, som_dim)
 
 		return dists_norm_sq
+
+
+
+
+
+
+class SOMLoss:
+
+	def __init__(self, model: SOM, device: torch.device, sigma: float = None):
+
+		self.device = device
+		self.model = model
+		self.weight_function = lambda **kwargs: (
+						self.neighbourhood_batch(**kwargs)
+						)
+
+
+	def __call__(self, norm_distance_matrix: torch.Tensor, sigma_local: float) -> torch.Tensor:
+
+		weight_function = self.weight_function(
+			dists=norm_distance_matrix, 
+			radius=sigma_local
+			)	
+		loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, norm_distance_matrix)))
+
+		return loss
+
+
+	def neighbourhood_batch(self, dists: torch.Tensor, radius: float) -> torch.Tensor:
+		"""
+        Compute the neighborhood function for a batch of inputs.
+
+        Args:
+            dists (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
+			radius (float): Variance of the gaussian.
+
+        Returns:
+            torch.Tensor: Neighborhood function values.
+        """
+
+		# look for the best matching unit (BMU)
+		bmu, bmu_loc = self.model.find_bmu(dists) # (batch_size, 2) 
+
+		neighbourhood_func = self._compute_gaussian(bmu_loc, radius) # (batch_size, som_dim)
+		return neighbourhood_func
 	
+
 	def _compute_gaussian(self, points: torch.Tensor, radius: float) -> torch.Tensor:
 		"""
         Compute a normalized gaussian centered in a batch of points with a certain radius.
 
         """
 
-		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
+		distances = self.model.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
 		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
 		gaussian_func = torch.exp(torch.neg(torch.div(distance_squares, radius**2))) # (batch_size, som_dim)
 		return gaussian_func
@@ -108,7 +149,7 @@ class SOM(nn.Module, ABC):
 
         """
 		
-		distances = self.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
+		distances = self.model.locations.float() - points.unsqueeze(1) # (batch_size, som_dim, 2)
 		distance_squares = torch.sum(torch.pow(distances, 2), 2) # (batch_size, som_dim)
 		tanh_weight_function = torch.tanh(torch.div((radius**2),distance_squares))   
 		return tanh_weight_function
