@@ -51,13 +51,16 @@ class SOM(nn.Module, ABC):
 		return to_return
 	
 	
-	def find_bmu(self, dists: torch.Tensor) -> torch.Tensor:
+	def find_bmu(self, dists: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 		"""
 		Compute the best matching unit (BMU) for a batch of inputs.
 
 		Args:
 			dists (torch.Tensor): Batch input vectors. B x D where D = total dimension (image_dim*channels)
 		
+		Returns:
+			bmu (torch.Tensor): The best matching unit (BMU) for each input vector.
+			bmu_loc (torch.Tensor): The locations of the BMUs in the SOM grid.
         """
 
 		# look for the best matching unit (BMU)

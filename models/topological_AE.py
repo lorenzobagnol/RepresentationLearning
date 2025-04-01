@@ -101,8 +101,8 @@ class TopologicalAE(nn.Module):
 			  normalized code.
 		"""
 		_, topological_output = self.encode(input_tensor)
-		latent_variable = self.topological_map.find_bmu(topological_output)
-		reconstructed_output = self.decode(latent_variable)
+		bmu, bmu_loc = self.topological_map.find_bmu(topological_output)
+		reconstructed_output = self.decode(bmu)
 		return reconstructed_output, topological_output
 
 
