@@ -30,8 +30,8 @@ class TopologicalAE(nn.Module):
 		Args:
 			som_dim (int): The dimensionality of the SOM in the latent space.
 		"""
+		
 		super(TopologicalAE, self).__init__()
-
 		# Encoder layers
 		self.encoder_conv1 = nn.Conv2d(
 			in_channels=1, out_channels=16, kernel_size=3, stride=2, padding=1
@@ -100,7 +100,8 @@ class TopologicalAE(nn.Module):
 			- (torch.Tensor, torch.Tensor): The reconstructed output and the
 			  normalized code.
 		"""
-		latent_variable, topological_output = self.encode(input_tensor)
+		_, topological_output = self.encode(input_tensor)
+		latent_variable = self.topological_map.find_bmu(topological_output)
 		reconstructed_output = self.decode(latent_variable)
 		return reconstructed_output, topological_output
 
