@@ -43,12 +43,39 @@ class SOM(nn.Module, ABC):
 				yield np.array([i, j])
 
 	def map_vects(self, input_vects) -> list:
+		"""
+		Map input vectors to the SOM grid.
+
+		Args:
+			input_vects (Sequence[torch.Tensor]): Input vectors to be mapped.
+
+		Returns:
+			list: List of locations in the SOM grid corresponding to the input vectors.
+		"""
 		to_return = []
 		for vect in input_vects:
 			min_index = min([i for i in range(len(self.weights))],
 							key=lambda x: np.linalg.norm(vect-self.weights[x].detach()))
 			to_return.append(self.locations[min_index])
 		return to_return
+	
+	def get_locations_from_grid_points(self, grid_points: Sequence[torch.Tensor]) -> torch.Tensor:
+		"""
+		Get the locations in the SOM grid corresponding to a list of grid points.
+
+		Args:
+			grid_points (Sequence[torch.Tensor]): List of grid points.
+
+		Returns:
+			torch.Tensor: Locations in the SOM grid corresponding to the input grid points.
+		"""
+		
+		assert len(grid_points.shape) == 2 and grid_points.shape[1] == 2, "grid_points should be of shape (n_points, 2)"
+		to_return = []
+		for point in grid_points:
+			index = (self.locations == point).all(dim=1).nonzero(as_tuple=True)[0]
+			to_return.append(index)
+		return torch.cat(to_return)
 	
 	
 	def find_bmu(self, dists: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

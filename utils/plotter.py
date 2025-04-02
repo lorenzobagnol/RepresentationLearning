@@ -101,8 +101,9 @@ class TopologicalAEPlotter():
 			PIL image: The PIL image of the generated images.
 		"""
 		
-		point_loc = torch.cat([point.value for point in target_points.points], 0) # (n_points, 2)
-		point_weights = self.model.topological_map.get_weights()[point_loc.long()] # (n_points, latent_dim)
+		point_loc = torch.stack([point.value for point in target_points.points], 0) # (n_points, 2)
+		point_locations = self.model.topological_map.get_locations_from_grid_points(point_loc) # (n_points, latent_dim)
+		point_weights = self.model.topological_map.get_weights()[point_locations] # (n_points, latent_dim)
 		reconstructed_images = self.model.decode(point_weights) # (n_points, image_tot_dim)
 		
 		# Transform to a PIL image
