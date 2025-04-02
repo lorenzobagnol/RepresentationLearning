@@ -472,7 +472,7 @@ class TopologicalAETrainer():
 				inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 				reconstructed, topological_output = self.model(inputs)
 				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
-				loss = torch.add(reconstruction_loss, map_loss)
+				loss = torch.add(reconstruction_loss, 0.05*map_loss)
 
 
 				if b==len(data_loader)-1 and self.wandb_log:

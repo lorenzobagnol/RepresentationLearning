@@ -100,9 +100,9 @@ class TopologicalAE(nn.Module):
 			- (torch.Tensor, torch.Tensor): The reconstructed output and the
 			  normalized code.
 		"""
-		_, topological_output = self.encode(input_tensor)
-		bmu, bmu_loc = self.topological_map.find_bmu(topological_output)
-		reconstructed_output = self.decode(bmu)
+		z, topological_output = self.encode(input_tensor)
+		# bmu, bmu_loc = self.topological_map.find_bmu(topological_output)
+		reconstructed_output = self.decode(z)
 		return reconstructed_output, topological_output
 
 
