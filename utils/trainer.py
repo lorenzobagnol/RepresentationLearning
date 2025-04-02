@@ -474,9 +474,6 @@ class TopologicalAETrainer():
 				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
 				loss = torch.add(reconstruction_loss, map_loss)
 
-				loss.backward()
-				optimizer.step()
-				optimizer.zero_grad()
 
 				if b==len(data_loader)-1 and self.wandb_log:
 					topological_map_image, reconstructed_image =  plotter.create_pil_image(target_points)
@@ -489,6 +486,9 @@ class TopologicalAETrainer():
 					})
 
 				loss = torch.mul(lr_local, loss)
+				loss.backward()
+				optimizer.step()
+				optimizer.zero_grad()
 
 		if wandb.run is not None:
 			wandb.finish()
