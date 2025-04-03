@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		som_config=SOMConfig(M=20, N=20, INPUT_DATA=InputData((28,28), channels=1, channel_range="RGB")),
 		LifeLong_config=LifeLongConfig(SIGMA=10, ALPHA=None, BETA=0.02, BATCH_SIZE=2, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE="Base"),
 		simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, BETA=0.01, SIGMA=10),
-		pytorch_batch_config=PytorchBatchConfig(EPOCHS=10, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01, SIGMA=10, MODE="Base"),
+		pytorch_batch_config=PytorchBatchConfig(EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01, SIGMA=10, MODE="Base"),
 		online_config=OnlineConfig(EPOCHS=1, SIGMA=10),
 		weights_and_biases_config=WandBConfig(PROJECT="prova"),
 		variables=VARS(SEED=10, target_radius=1.5)
