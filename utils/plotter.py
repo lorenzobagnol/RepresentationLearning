@@ -134,8 +134,8 @@ class TopologicalAEPlotter():
 		Returns:
 			numpy array: heigh*width*channels array representing the image grid.
 		"""
-		weights = self.model.topological_map.get_weights().cpu()
-		image_grid=torch.cat([torch.cat([self.model.decode(weights[i+(j*self.model.n)].unsqueeze(0))[0,0] for i in range(self.model.topological_map.n)], 0) for j in range(self.model.topological_map.m)], 1).detach()
+		weights = self.model.topological_map.get_weights().detach()
+		image_grid=torch.cat([torch.cat([self.model.decode(weights[i+(j*self.model.topological_map.n)].unsqueeze(0))[0,0] for i in range(self.model.topological_map.n)], 0) for j in range(self.model.topological_map.m)], 1).detach().cpu()
 		if self.clip_image:
 			return np.clip(image_grid, 0, 1)
 		return np.array(image_grid)
