@@ -45,7 +45,6 @@ if __name__ == '__main__':
 		config = Config(
 			SEED=13,
 			som_config=SOMConfig(M=20, N=20, INPUT_DATA=input_data),
-			LifeLong_config=LifeLongConfig(SIGMA=10, TARGET_RADIUS=1.5, ALPHA=None, BETA=0.02, BATCH_SIZE=2, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE="Base"),
 			pytorch_batch_config=PytorchBatchConfig(SIGMA=10, TARGET_RADIUS=1.5, EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01,  MODE="Base"),
 			weights_and_biases_config=WandBConfig(PROJECT="prova"),
 			variables=VARS()
