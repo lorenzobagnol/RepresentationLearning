@@ -11,8 +11,7 @@ import os
 
 from models.som import SOM
 from utils.inputdata import InputData
-from models.topological_AE import TopologicalAE
-from utils.trainer import SOMTrainer, STMTrainer, TopologicalAETrainer
+from utils.trainer import SOMTrainer
 from utils.config import Config, SOMConfig
 
 class Runner():
@@ -41,10 +40,10 @@ class Runner():
 			argparse.Namespace: Parsed command line arguments.
 		"""
 		parser = argparse.ArgumentParser(
-						prog='SOM/STM training',
-						description='this script can train a SOM or a STM',
+						prog='SOM training',
+						description='this script can train a SOM',
 						epilog='Text at the bottom of help')
-		parser.add_argument("--training", dest='training_mode', help="The training mode. Could be 'simple_batch', 'online', 'pytorch_batch', 'LifeLong'", type=str, required=True)
+		parser.add_argument("--training", dest='training_mode', help="The training mode. Could be 'simple_batch', 'online', 'pytorch_batch'", type=str, required=True)
 		parser.add_argument("--log", dest='wandb_log', help="Add '--log' to log in wandb.", action='store_true')
 		return parser.parse_args()
 
@@ -60,11 +59,11 @@ class Runner():
 		"""
 		
 		if self.wandb_log:
-			wandb.init(project='STM-'+config.weights_and_biases_config.PROJECT+'-'+self.dataset_name, job_type= self.training_mode)
+			wandb.init(project='SOM-'+config.weights_and_biases_config.PROJECT+'-'+self.dataset_name, job_type= self.training_mode)
 
-		print("You have choose to train a STM model with "+self.training_mode+" mode.")
+		print("You have choose to train a SOM model with "+self.training_mode+" mode.")
 		
-		trainer = STMTrainer(model=model, device=self.device, wandb_log=self.wandb_log, clip_images=True)
+		trainer = SOMTrainer(model=model, device=self.device, wandb_log=self.wandb_log, clip_images=True)
 			
 		training_function = getattr(trainer, "train_"+self.training_mode)
 
@@ -74,7 +73,7 @@ class Runner():
 
 	def available_training_modes(self):
 
-		return ["LifeLong", "pytorch_batch"]
+		return ['simple_batch', 'pytorch_batch', 'online']
 		
 
 	def create_dataset(self, input_data: InputData=None):
@@ -128,7 +127,7 @@ class Runner():
 
 	def run(self, config: Config):
 		"""
-		Main function to run the training and plotting of the SOM/STM.
+		Main function to run the training and plotting of the SOM.
 		"""
 		torch.manual_seed(config.SEED)
 		random.seed(config.SEED)
