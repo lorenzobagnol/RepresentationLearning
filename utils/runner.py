@@ -76,7 +76,7 @@ class Runner():
 		return ['simple_batch', 'pytorch_batch', 'online']
 		
 
-	def create_dataset(self, input_data: InputData=None):
+	def create_dataset(self, input_data: InputData):
 		
 		
 		transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]) if input_data.transform_data else torchvision.transforms.ToTensor()
