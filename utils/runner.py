@@ -12,7 +12,7 @@ import os
 from models.som import SOM
 from utils.inputdata import InputData
 from utils.trainer import SOMTrainer
-from utils.config import Config, SOMConfig
+from utils.config import Config
 
 class Runner():
 
