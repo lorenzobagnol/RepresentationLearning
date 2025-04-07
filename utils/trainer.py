@@ -237,7 +237,7 @@ class STMTrainer():
 			for b, batch in enumerate(data_loader):
 				inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 				norm_distance_matrix = self.model(inputs)
-				loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["target_radius"])
+				loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["TARGET_RADIUS"])
 
 				if b==len(data_loader)-1 and self.wandb_log:
 					pil_image =  plotter.create_pil_image(target_points)
@@ -323,7 +323,7 @@ class STMTrainer():
 				for b, batch in enumerate(data_loader):
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
-					loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["target_radius"])
+					loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["TARGET_RADIUS"])
 					
 					if b==len(data_loader)-1 and self.wandb_log:
 						if iter_no==kwargs["EPOCHS_PER_SUBSET"]-1:
@@ -471,7 +471,7 @@ class TopologicalAETrainer():
 				optimizer.zero_grad()
 				inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 				reconstructed, topological_output = self.model(inputs)
-				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
+				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["TARGET_RADIUS"], labels)
 				loss = torch.add(reconstruction_loss, 0.05*map_loss)
 
 
@@ -562,7 +562,7 @@ class TopologicalAETrainer():
 					optimizer.zero_grad()
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					reconstructed, topological_output = self.model(inputs)
-					loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["target_radius"], labels)
+					loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["TARGET_RADIUS"], labels)
 						
 					if b==len(data_loader)-1 and self.wandb_log:
 						if iter_no==kwargs["EPOCHS_PER_SUBSET"]-1:

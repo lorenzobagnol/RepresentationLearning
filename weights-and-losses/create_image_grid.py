@@ -109,7 +109,7 @@ if __name__=="__main__":
 			 "name": "ALPHA"}	  
 			
 	vars1 = {"values": [10, 5, 2, 1.5],  # 3 different targed radius values
-		  	"name": "target_radius"}	
+		  	"name": "TARGET_RADIUS"}	
 		
 	#create_image_grid(vars0, vars1)
 	create_loss_grid(vars0, vars1, "distance_target_bmu")

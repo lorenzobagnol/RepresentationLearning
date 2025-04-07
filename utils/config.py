@@ -25,6 +25,7 @@ class WandBConfig(BaseConfig):
 class LifeLongConfig(BaseConfig):
     """Configuration for lifelong learning."""
     SIGMA: float
+    TARGET_RADIUS: float
     ALPHA: float
     BETA: float
     BATCH_SIZE: int
@@ -37,28 +38,15 @@ class LifeLongConfig(BaseConfig):
     MODE: str
 
 @dataclass
-class SimpleBatchConfig(BaseConfig):
-    """Simple batch training configuration."""
-    SIGMA: float
-    EPOCHS: int
-    BATCH_SIZE: int
-    BETA: float
-
-@dataclass
 class PytorchBatchConfig(BaseConfig):
     """PyTorch-specific batch training configuration."""
     SIGMA: float
+    TARGET_RADIUS: float
     EPOCHS: int
     BATCH_SIZE: int
     LEARNING_RATE: float
     BETA: float
     MODE: str
-
-@dataclass
-class OnlineConfig(BaseConfig):
-    """Online training configuration."""
-    SIGMA: float
-    EPOCHS: int
 
 @dataclass
 class VARS(BaseConfig):
@@ -73,8 +61,6 @@ class Config:
     weights_and_biases_config: WandBConfig
     som_config: SOMConfig 
     LifeLong_config: LifeLongConfig 
-    simple_batch_config: SimpleBatchConfig 
     pytorch_batch_config: PytorchBatchConfig 
-    online_config: OnlineConfig 
     variables: VARS
 

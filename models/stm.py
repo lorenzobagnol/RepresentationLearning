@@ -164,7 +164,7 @@ class STMLoss:
 
 				def Base_Norm(dists, **kwargs):
 					sigma_local = kwargs["sigma_local"]
-					target_radius = kwargs["target_radius"]
+					target_radius = kwargs["TARGET_RADIUS"]
 					labels = kwargs["labels"]
 					neighbourhood_func = self.neighbourhood_batch(dists, radius=sigma_local)
 					target_dist = self.target_distance_batch(labels, radius=target_radius)
