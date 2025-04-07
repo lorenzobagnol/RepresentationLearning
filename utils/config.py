@@ -17,6 +17,12 @@ class SOMConfig(BaseConfig):
     INPUT_DATA: InputData
 
 @dataclass
+class TopologicalAEConfig(BaseConfig):
+    """Configuration for Topological Autoencoder."""
+    SOM_CONFIG: SOMConfig
+    
+
+@dataclass
 class WandBConfig(BaseConfig):
     """Configuration for WeightsAndBiases."""
     PROJECT: str
@@ -25,6 +31,7 @@ class WandBConfig(BaseConfig):
 class LifeLongConfig(BaseConfig):
     """Configuration for lifelong learning."""
     SIGMA: float
+    TARGET_RADIUS: float
     ALPHA: float
     BETA: float
     BATCH_SIZE: int
@@ -36,18 +43,12 @@ class LifeLongConfig(BaseConfig):
     LEARNING_RATE: float
     MODE: str
 
-@dataclass
-class SimpleBatchConfig(BaseConfig):
-    """Simple batch training configuration."""
-    SIGMA: float
-    EPOCHS: int
-    BATCH_SIZE: int
-    BETA: float
 
 @dataclass
 class PytorchBatchConfig(BaseConfig):
     """PyTorch-specific batch training configuration."""
     SIGMA: float
+    TARGET_RADIUS: float
     EPOCHS: int
     BATCH_SIZE: int
     LEARNING_RATE: float
@@ -55,26 +56,20 @@ class PytorchBatchConfig(BaseConfig):
     MODE: str
 
 @dataclass
-class OnlineConfig(BaseConfig):
-    """Online training configuration."""
-    SIGMA: float
-    EPOCHS: int
-
-@dataclass
 class VARS(BaseConfig):
     def __init__(self, **kargs: Any):
         for key, value in kargs.items():
             setattr(self, key, value)
+
+
 
 @dataclass
 class Config:
     """Master configuration class that can hold all the sub-configurations."""
     SEED: int
     weights_and_biases_config: WandBConfig
-    som_config: SOMConfig 
+    tae: TopologicalAEConfig
     LifeLong_config: LifeLongConfig 
-    simple_batch_config: SimpleBatchConfig 
     pytorch_batch_config: PytorchBatchConfig 
-    online_config: OnlineConfig 
     variables: VARS
 
