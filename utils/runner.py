@@ -11,8 +11,7 @@ import os
 
 from models.som import SOM
 from utils.inputdata import InputData
-from models.topological_AE import TopologicalAE
-from utils.trainer import SOMTrainer, STMTrainer, TopologicalAETrainer
+from utils.trainer import STMTrainer
 from utils.config import Config, SOMConfig
 
 class Runner():
