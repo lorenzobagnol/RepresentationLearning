@@ -10,7 +10,7 @@ import wandb
 
 from utils.inputdata import InputData
 from utils.runner import Runner
-from utils.config import Config, SOMConfig, PytorchBatchConfig, LifeLongConfig, WandBConfig, VARS
+from utils.config import Config, SOMConfig, PytorchBatchConfig, WandBConfig, VARS, SimpleBatchConfig, OnlineConfig
 		
 
 
@@ -44,9 +44,11 @@ if __name__ == '__main__':
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
+			weights_and_biases_config=WandBConfig(PROJECT="baseline"),
 			som_config=SOMConfig(M=20, N=20, INPUT_DATA=input_data),
-			pytorch_batch_config=PytorchBatchConfig(SIGMA=10, TARGET_RADIUS=1.5, EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01,  MODE="Base"),
-			weights_and_biases_config=WandBConfig(PROJECT="prova"),
+			online_config=OnlineConfig(EPOCHS=1, SIGMA=10),
+			simple_batch_config=SimpleBatchConfig(EPOCHS=1, BATCH_SIZE=20, SIGMA=10, BETA=0.01, SIGMA=10),
+			pytorch_batch_config=PytorchBatchConfig(SIGMA=10, EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01,  MODE="Base"),
 			variables=VARS()
 		)
 		runner.run(config)
