@@ -128,9 +128,9 @@ class Runner():
 		"""
 		Main function to run the training and plotting of the SOM/STM.
 		"""
-		torch.manual_seed(config.SEED)
-		random.seed(config.SEED)
-		np.random.seed(config.SEED)
+		torch.manual_seed(config.variables.SEED)
+		random.seed(config.variables.SEED)
+		np.random.seed(config.variables.SEED)
 		
 		model = TopologicalAE(config.tae).to(self.device)
 

@@ -32,6 +32,7 @@ class LifeLongConfig(BaseConfig):
     """Configuration for lifelong learning."""
     SIGMA: float
     TARGET_RADIUS: float
+    DELTA: float
     ALPHA: float
     BETA: float
     BATCH_SIZE: int
@@ -49,6 +50,7 @@ class PytorchBatchConfig(BaseConfig):
     """PyTorch-specific batch training configuration."""
     SIGMA: float
     TARGET_RADIUS: float
+    DELTA: float
     EPOCHS: int
     BATCH_SIZE: int
     LEARNING_RATE: float
@@ -66,7 +68,6 @@ class VARS(BaseConfig):
 @dataclass
 class Config:
     """Master configuration class that can hold all the sub-configurations."""
-    SEED: int
     weights_and_biases_config: WandBConfig
     tae: TopologicalAEConfig
     LifeLong_config: LifeLongConfig 

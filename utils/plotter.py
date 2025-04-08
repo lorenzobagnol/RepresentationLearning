@@ -29,44 +29,8 @@ class TopologicalAEPlotter():
 			PIL image: The PIL image of the generated images.
 		"""
 		topological_map_image = self.create_som_pil_image(target_points)
-		reconstructed_image = self.create_reconstructed_image(target_points)
-		return topological_map_image, reconstructed_image
+		return topological_map_image
 	
-
-	def create_reconstructed_image(self, target_points: TargetPoints) -> Image:
-		"""
-		Create a PIL image of the reconstructed images of the AE model from the target points.
-		
-		Args:
-			model (TopologicalAE): The model of Topological Autoencoder.
-		
-		Returns:
-			PIL image: The PIL image of the generated images.
-		"""
-		
-		point_loc = torch.stack([point.value for point in target_points.points], 0) # (n_points, 2)
-		point_locations = self.model.topological_map.get_locations_from_grid_points(point_loc) # (n_points, latent_dim)
-		point_weights = self.model.topological_map.get_weights()[point_locations] # (n_points, latent_dim)
-		reconstructed_images = self.model.decode(point_weights) # (n_points, image_tot_dim)
-		
-		# Transform to a PIL image
-		fig, ax = plt.subplots(1, len(reconstructed_images), figsize=(len(reconstructed_images)*4, 4))
-		for i, image in enumerate(reconstructed_images):
-			image = image.detach().cpu()
-			if self.clip_image:
-				image = np.clip(image, 0, 1)
-			ax[i].imshow(image[0])
-			ax[i].axis("off")
-		# Save the figure to a buffer
-		buf = io.BytesIO()	
-		fig.savefig(buf, format='png', bbox_inches='tight')
-		buf.seek(0)
-		# Create a PIL image from the buffer
-		pil_image = PIL.Image.open(buf).copy()
-		plt.close(fig)
-		buf.close()
-		return pil_image
-
 
 	def create_image_grid(self) -> np.ndarray:
 		"""

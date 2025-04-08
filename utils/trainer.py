@@ -65,14 +65,13 @@ class TopologicalAETrainer():
 				inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 				reconstructed, topological_output = self.model(inputs)
 				reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["TARGET_RADIUS"], labels)
-				loss = torch.add(reconstruction_loss, 0.05*map_loss)
+				loss = torch.add(reconstruction_loss, kwargs["DELTA"]*map_loss)
 
 
 				if b==len(data_loader)-1 and self.wandb_log:
-					topological_map_image, reconstructed_image =  plotter.create_pil_image(target_points)
+					topological_map_image =  plotter.create_pil_image(target_points)
 					wandb.log({	
 						"som_weights": wandb.Image(topological_map_image),
-						"decoder_output": wandb.Image(reconstructed_image),
 						"reconstruction_loss" : reconstruction_loss.item(),
 						"map_loss" : map_loss.item(),
 						"loss" : loss.item()
@@ -155,14 +154,16 @@ class TopologicalAETrainer():
 					optimizer.zero_grad()
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					reconstructed, topological_output = self.model(inputs)
-					loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["TARGET_RADIUS"], labels)
-						
+					reconstruction_loss, map_loss = loss_function(inputs, reconstructed, topological_output, sigma_local, kwargs["TARGET_RADIUS"], labels)
+					loss = torch.add(reconstruction_loss, kwargs["DELTA"]*map_loss)
+
 					if b==len(data_loader)-1 and self.wandb_log:
 						if iter_no==kwargs["EPOCHS_PER_SUBSET"]-1:
-							topological_map_image, reconstructed_image =  plotter.create_pil_image(target_points)
+							topological_map_image =  plotter.create_pil_image(target_points)
 							wandb.log({	
 								"som_weights": wandb.Image(topological_map_image),
-								"decoder_output": wandb.Image(reconstructed_image),
+								"reconstruction_loss" : reconstruction_loss.item(),
+								"map_loss" : map_loss.item(),
 								"loss" : loss.item()
 							})
 						else:
