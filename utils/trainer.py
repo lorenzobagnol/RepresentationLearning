@@ -148,8 +148,9 @@ class TopologicalAETrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				with torch.no_grad():
 					actual_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
-				lr_local = actual_local_error/initial_local_error
-				sigma_local = max(kwargs["SIGMA"]*actual_local_error/initial_local_error, 0.7)
+				scaling_factor = torch.min(actual_local_error/initial_local_error, torch.tensor(1))
+				lr_local = scaling_factor
+				sigma_local = max(kwargs["SIGMA"]*scaling_factor, 0.7)
 				for b, batch in enumerate(data_loader):
 					optimizer.zero_grad()
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
@@ -167,8 +168,10 @@ class TopologicalAETrainer():
 								"loss" : loss.item()
 							})
 						else:
-							wandb.log({	
-								"loss" : loss.item(),
+							wandb.log({
+								"reconstruction_loss" : reconstruction_loss.item(),
+								"map_loss" : map_loss.item(),
+								"loss" : loss.item()
 							})
 
 					loss = torch.mul(lr_local, loss)
