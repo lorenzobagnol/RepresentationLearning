@@ -179,3 +179,29 @@ class TopologicalAETrainer():
 			wandb.finish()
 		return
 	
+
+	
+
+	def compute_errors(self, val_set: Dataset, batch_size: int, label: int =None):
+
+		if label is not None:
+			indices = torch.where(val_set.targets==label)[0].tolist()
+			val_set=torch.utils.data.Subset(val_set, indices)
+
+		data_loader = torch.utils.data.DataLoader(val_set,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		total_distance=0
+		for b, batch in enumerate(data_loader):
+			inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
+			reconstructed, topological_output = self.model(inputs)
+
+			# look for the best matching unit (BMU)
+			bmu_distance_sq, bmu_indices = torch.min(topological_output, 1) # batch_size
+			total_distance+=torch.sum(bmu_distance_sq)
+		
+		total_distance /= len(val_set)
+
+		return total_distance
+	
