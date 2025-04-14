@@ -39,7 +39,7 @@ if __name__ == '__main__':
 		config = Config(
 			weights_and_biases_config=WandBConfig(PROJECT="prova"),
 			tae=TopologicalAEConfig(SOM_CONFIG=SOMConfig(10, 10, INPUT_DATA= InputData(256, channels=1, channel_range="RGB"))),
-			LifeLong_config=LifeLongConfig(SIGMA=10, DELTA=0.05, ALPHA=None, BETA=0.02, BATCH_SIZE=2, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, TARGET_RADIUS=1.5, MODE="Base"),
+			LifeLong_config=LifeLongConfig(SIGMA=10, DELTA=0.05, BATCH_SIZE=20, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.001, TARGET_RADIUS=1.5, MODE="Base"),
 			pytorch_batch_config=PytorchBatchConfig(EPOCHS=2, BATCH_SIZE=20, TARGET_RADIUS=1.5, DELTA=0.05, LEARNING_RATE=0.001, BETA=0.01, SIGMA=10, MODE="Base"),
 			variables=VARS(SEED=13)
 		)

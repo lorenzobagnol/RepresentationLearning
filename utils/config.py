@@ -33,8 +33,6 @@ class LifeLongConfig(BaseConfig):
     SIGMA: float
     TARGET_RADIUS: float
     DELTA: float
-    ALPHA: float
-    BETA: float
     BATCH_SIZE: int
     EPOCHS_PER_SUBSET: int
     SUBSET_SIZE: int
