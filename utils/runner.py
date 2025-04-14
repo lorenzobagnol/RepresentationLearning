@@ -132,7 +132,7 @@ class Runner():
 		random.seed(config.variables.SEED)
 		np.random.seed(config.variables.SEED)
 		
-		model = TopologicalAE(config.tae).to(self.device)
+		model = TopologicalAE(config.tae, config.variables.SEED).to(self.device)
 
 		self.select_training(model, config)
 

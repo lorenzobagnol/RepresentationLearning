@@ -24,7 +24,7 @@ class TopologicalAE(nn.Module):
 	space.
 	"""
 
-	def __init__(self, tae_config: TopologicalAEConfig):
+	def __init__(self, tae_config: TopologicalAEConfig, seed:int):
 		"""
 		Initialize the Topological Autoencoder with specified latent dimension.
 
@@ -34,7 +34,7 @@ class TopologicalAE(nn.Module):
 		
 		super(TopologicalAE, self).__init__()
 
-		self.mask = MaskManager()
+		self.mask = MaskManager(seed)
 		# Encoder layers
 		self.encoder_conv1 = nn.Conv2d(
 			in_channels=1, out_channels=16, kernel_size=3, stride=2, padding=1
