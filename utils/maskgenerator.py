@@ -52,7 +52,7 @@ class MaskManager(nn.Module):
 		torch.manual_seed(self.seed)
 		# Reshape the mask to (1, feature_size) to be compatible for
 		# broadcasting during multiplication
-		#mask = self.mask.reshape(1, -1)
+		mask = self.mask.reshape(1, -1)
 
 		return mask
 

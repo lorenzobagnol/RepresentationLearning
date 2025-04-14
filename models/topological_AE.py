@@ -68,12 +68,12 @@ class TopologicalAE(nn.Module):
 			torch.Tensor: The latent space variables
 		"""
 		x = F.relu(self.encoder_conv1(input_tensor))
-		x = self.mask(x)
+		x = x*self.mask(x)
 		x = F.relu(self.encoder_conv2(x))
-		x = self.mask(x)
+		x = x*self.mask(x)
 		x = x.view(x.size(0), -1)
 		x = F.relu(self.encoder_fc1(x))
-		x = self.mask(x)
+		x = x*self.mask(x)
 		topological_output = self.topological_map(x)
 		return x, topological_output
 
@@ -88,10 +88,10 @@ class TopologicalAE(nn.Module):
 			torch.Tensor: Reconstructed data.
 		"""
 		z = F.relu(self.decoder_fc2(latent_variable))
-		z = self.mask(z)
+		z = z*self.mask(z)
 		z = z.view(z.size(0), 32, 7, 7)
 		z = F.relu(self.decoder_deconv1(z))
-		z = self.mask(z)
+		z = z*self.mask(z)
 		z = torch.sigmoid(self.decoder_deconv2(z))
 
 		return z
