@@ -127,7 +127,10 @@ class TopologicalAETrainer():
 
 		target_points = TargetPoints(rep, self.device, self.model.topological_map.m, self.model.topological_map.n, seed=kwargs["SEED"])
 		loss_function = TopologicalAELoss(self.model, self.device, kwargs["MODE"], target_points)
-
+		torch.seed()
+		self.model.update_dropout_probability(0.3)
+		torch.manual_seed(kwargs["SEED"])
+		
 		for i in list_labels:
 			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
 			if kwargs["DISJOINT_TRAINING"]:
