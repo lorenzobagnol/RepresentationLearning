@@ -144,6 +144,7 @@ class TopologicalAETrainer():
 											drop_last=True
 											)
 			
+			self.model.mask.update_seed(i)
 			with torch.no_grad():
 				initial_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
