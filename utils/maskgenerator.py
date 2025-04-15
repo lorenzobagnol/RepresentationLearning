@@ -12,7 +12,7 @@ class MaskManager(nn.Module):
 	dropout within other neural network modules.
 	"""
 
-	def __init__(self, seed:int, mask_seed:int, dropout_probability=0.0):
+	def __init__(self, seed:int, mask_seed:int=None, dropout_probability=0.0):
 		"""
 		Initializes the MaskManager.
 
