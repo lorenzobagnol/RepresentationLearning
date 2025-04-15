@@ -12,7 +12,7 @@ class MaskManager(nn.Module):
 	dropout within other neural network modules.
 	"""
 
-	def __init__(self, seed:int, dropout_probability=0.0):
+	def __init__(self, seed:int, mask_seed:int, dropout_probability=0.0):
 		"""
 		Initializes the MaskManager.
 
@@ -21,7 +21,8 @@ class MaskManager(nn.Module):
 			  probability.  Defaults to 0.0 (no dropout).
 		"""
 		super(MaskManager, self).__init__()
-		self.seed = seed
+		self.project_seed = seed
+		self.mask_seed = mask_seed
 		self.dropout_probability = dropout_probability
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -47,12 +48,11 @@ class MaskManager(nn.Module):
 		# (the number of neurons in the layer).  `x[0]` is used to get the
 		# shape of the features, assuming x is of shape (batch_size,
 		# feature_size)
-		torch.seed()
+		torch.manual_seed(self.mask_seed)
 		mask = torch.bernoulli(torch.empty_like(x[0]), 1 - p)
-		torch.manual_seed(self.seed)
+		torch.manual_seed(self.project_seed)
 		# Reshape the mask to (1, feature_size) to be compatible for
 		# broadcasting during multiplication
-		mask = self.mask.reshape(1, -1)
 
 		return mask
 
@@ -64,3 +64,12 @@ class MaskManager(nn.Module):
 			new_probability (float): The new dropout probability.
 		"""
 		self.dropout_probability = new_probability
+
+	def update_seed(self, seed:int):
+		"""
+		Updates the seed for the mask generator.
+
+		Args:
+			seed (int): The new seed value.
+		"""
+		self.mask_seed = seed
