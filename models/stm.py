@@ -156,7 +156,7 @@ class STMLoss:
 				self.weight_function = lambda dists, **kwargs: (
 					torch.mul(
 						self.neighbourhood_batch(dists, kwargs["radius"]),
-						self.target_distance_batch(kwargs["labels"], kwargs["radius"])
+						self.target_distance_batch(kwargs["labels"], kwargs["target_radius"])
 					)
 				)
 
@@ -174,7 +174,7 @@ class STMLoss:
 
 				def Base_Norm(dists, **kwargs):
 					sigma_local = kwargs["sigma_local"]
-					target_radius = kwargs["TARGET_RADIUS"]
+					target_radius = kwargs["target_radius"]
 					labels = kwargs["labels"]
 					neighbourhood_func = self.neighbourhood_batch(dists, radius=sigma_local)
 					target_dist = self.target_distance_batch(labels, radius=target_radius)

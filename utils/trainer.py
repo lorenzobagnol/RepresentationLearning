@@ -149,8 +149,9 @@ class STMTrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				with torch.no_grad():
 					actual_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
-				lr_local = actual_local_error/initial_local_error
-				sigma_local = max(kwargs["SIGMA"]*actual_local_error/initial_local_error, 0.7)
+				scaling_factor = max(1, actual_local_error/initial_local_error)
+				lr_local = scaling_factor
+				sigma_local = max(kwargs["SIGMA"]*scaling_factor, 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
@@ -269,7 +270,7 @@ class STMTrainer():
 		correct_predictions = 0
 		total_samples = 0
 		for b, batch in enumerate(data_loader):
-			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+			inputs, targets = batch[0].to(self.device), batch[1].detach().cpu()
 			norm_distance_matrix = self.model(inputs)
 			bmu, bmu_loc = self.model.find_bmu(norm_distance_matrix) # batch_size
 			nearest_targets = [target_points.find_nearest_point(loc, available=False, top_k=1).label for loc in bmu_loc] 
