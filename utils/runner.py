@@ -77,29 +77,23 @@ class Runner():
 			return ["pytorch_batch", "LifeLong"]
 		
 
-	def create_dataset(self, input_data: InputData=None, subset_size=None):
+	def create_dataset(self, subset_size=None):
 		
-		if input_data is not None:
-			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]) if input_data.transform_data else torchvision.transforms.ToTensor()
-		else:
-			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
-
+		
 		if self.dataset_name=="MNIST":
 
-			self.input_data = InputData((28,28), channels=1, channel_range="RGB")
-			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
 			# data in .data and labels in .targets
 			MNIST_train = torchvision.datasets.MNIST(
 				root=os.path.curdir,
 				train=True,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)
 			MNIST_val = torchvision.datasets.MNIST(
 				root=os.path.curdir,
 				train=False,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)	
 
 			if subset_size is not None:
@@ -113,20 +107,18 @@ class Runner():
 
 		
 		if self.dataset_name=="CIFAR10":
-			self.input_data = InputData((32,32), channels=3, channel_range="RGB")
-			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
 			# data in .data and labels in .targets
 			CIFAR_train = torchvision.datasets.CIFAR10(
 				root=os.path.curdir,
 				train=True,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)
 			CIFAR_val = torchvision.datasets.CIFAR10(
 				root=os.path.curdir,
 				train=False,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)
 			
 			if subset_size is not None:
@@ -138,20 +130,18 @@ class Runner():
 			return CIFAR_train, CIFAR_val
 
 		if self.dataset_name=="FASHION-MNIST":
-			self.input_data = InputData((28,28), channels=1, channel_range="RGB")
-			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
 			# data in .data and labels in .targets
 			FASHION_train = torchvision.datasets.FashionMNIST(
 				root=os.path.curdir,
 				train=True,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)
 			FASHION_val = torchvision.datasets.FashionMNIST(
 				root=os.path.curdir,
 				train=False,
 				download=True,
-				transform=transform
+				transform=torchvision.transforms.ToTensor()
 			)
 			if subset_size is not None:
 				FASHION_train_subset= torch.utils.data.dataset.Subset(FASHION_train,[i for i in range(subset_size)])

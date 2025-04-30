@@ -42,9 +42,11 @@ class TopologicalAE(nn.Module):
 		self.encoder_conv2 = nn.Conv2d(
 			in_channels=16, out_channels=32, kernel_size=3, stride=2, padding=1
 		)
-		self.encoder_fc1 = nn.Linear(in_features=32 * 7 * 7, out_features=tae_config.SOM_CONFIG.INPUT_DATA.dim)
+		self.encoder_fc1 = nn.Linear(in_features=32 * 7 * 7, out_features=256)
+
+		input_data = InputData(256, channels=1, channel_range="RGB")
 		
-		self.topological_map = SOM(tae_config.SOM_CONFIG)
+		self.topological_map = SOM(tae_config.SOM_CONFIG, input_data)
 		
 		# Decoder layers
 		self.decoder_fc2 = nn.Linear(in_features=256, out_features=32 * 7 * 7)
