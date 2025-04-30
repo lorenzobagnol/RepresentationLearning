@@ -14,6 +14,11 @@ class SOMConfig(BaseConfig):
     """Configuration for SOM."""
     M: int
     N: int
+
+@dataclass
+class TopologicalAEConfig(BaseConfig):
+    """Configuration for Topological Autoencoder."""
+    SOM_CONFIG: SOMConfig
     INPUT_DATA: InputData
 
 @dataclass
@@ -26,6 +31,7 @@ class TopologicalAEConfig(BaseConfig):
 class WandBConfig(BaseConfig):
     """Configuration for WeightsAndBiases."""
     PROJECT: str
+    ENTITY: str = None
 
 @dataclass
 class LifeLongConfig(BaseConfig):

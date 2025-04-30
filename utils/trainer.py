@@ -23,13 +23,14 @@ class TopologicalAETrainer():
 
 	def train_pytorch_batch(self, dataset_train: Dataset, dataset_val: Dataset, **kwargs):
 		"""
-		Train the STM using PyTorch's built-in optimizers and backpropagation.
+		Compute the accuracy of the model on the validation set.
 
 		Args:
-			dataset_train (Dataset): Dataset for training.
-			dataset_val (Dataset): The validation dataset used to evaluate the model's competence after training.
-			**kwargs: Keyword arguments for various training hyperparameters, including:
-				
+			val_set (Dataset): The validation dataset.
+			batch_size (int): The batch size for data loading.
+			target_points: Target points for the model.
+			label (list, optional): Specific labels to compute accuracy for. Defaults to None.
+
 		Returns:
 			None: This function does not return any values, but it updates the model's weights and logs progress.
 		

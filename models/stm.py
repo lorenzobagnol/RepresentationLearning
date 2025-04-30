@@ -1,4 +1,4 @@
-from typing import List, Literal, Set, Tuple
+from typing import List, Literal, Set, Tuple, Union
 import torch
 import numpy as np
 from torch import Tensor
@@ -25,9 +25,9 @@ class TargetPoints:
 		self.device = device
 		self.M = M
 		self.N = N
-		self.points = self.generate_equally_distributed_points_v2()
+		self.points = self.generate_equally_distributed_points_v2(shuffle=True)
 
-	def find_nearest_point(self, point: Tensor, top_k: int=1) -> int:
+	def find_nearest_point(self, point: Tensor, available:bool, top_k: int=1) -> Union[List[TargetPoint], TargetPoint]:
 		"""
 		Find the nearest target point to a given point.
 
@@ -36,12 +36,22 @@ class TargetPoints:
 			top_k (int, optional): The number of nearest points to return. Defaults to 1.
 
 		Returns:
-			int: The index of the nearest target point.
+			The nearest(s) target point.
 		"""
-		distances = [torch.norm(point - target_point.value) for target_point in self.points if target_point.usable]
-		nearest_indices = np.argsort(distances)[:top_k]
-		return nearest_indices[0] if top_k == 1 else nearest_indices
-	
+		if available:
+			available_points = [p for p in self.points if p.usable]
+		else:
+			available_points = [p for p in self.points]
+
+		if len(available_points) == 0:
+			return None
+
+		dists = torch.norm(point - torch.stack([p.value for p in available_points]), dim=1)
+		nearest_indices = torch.topk(dists, top_k, largest=False).indices
+		if top_k == 1:
+			return available_points[nearest_indices[0]]
+		else:
+			return [available_points[i] for i in nearest_indices]
 	
 	def generate_equally_distributed_points(self) -> Set[TargetPoint]:
 		m=self.M
@@ -70,7 +80,7 @@ class TargetPoints:
 		return target_points
 	
 
-	def generate_equally_distributed_points_v2(self) -> Set[TargetPoint]:
+	def generate_equally_distributed_points_v2(self, shuffle:bool=False) -> Set[TargetPoint]:
 		points = np.array(
 				[
 					[0.15, 0.17],
@@ -146,7 +156,7 @@ class STMLoss:
 				self.weight_function = lambda dists, **kwargs: (
 					torch.mul(
 						self.neighbourhood_batch(dists, kwargs["radius"]),
-						self.target_distance_batch(kwargs["labels"], kwargs["radius"])
+						self.target_distance_batch(kwargs["labels"], kwargs["target_radius"])
 					)
 				)
 
@@ -164,7 +174,7 @@ class STMLoss:
 
 				def Base_Norm(dists, **kwargs):
 					sigma_local = kwargs["sigma_local"]
-					target_radius = kwargs["TARGET_RADIUS"]
+					target_radius = kwargs["target_radius"]
 					labels = kwargs["labels"]
 					neighbourhood_func = self.neighbourhood_batch(dists, radius=sigma_local)
 					target_dist = self.target_distance_batch(labels, radius=target_radius)
