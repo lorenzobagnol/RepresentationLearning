@@ -11,7 +11,7 @@ class SOM(nn.Module, ABC):
 	"""
 	Class of Self-Organizing Map.
 	"""
-	def __init__(self, som_config: SOMConfig) -> None:
+	def __init__(self, som_config: SOMConfig, input_data: InputData) -> None:
 		"""
         Initialize the class for the SOM network.
 
@@ -24,7 +24,7 @@ class SOM(nn.Module, ABC):
 		super().__init__()
 		self.m = som_config.M
 		self.n = som_config.N
-		self.input_data = som_config.INPUT_DATA
+		self.input_data = input_data
 
 		w=torch.rand(self.m*self.n, self.input_data.dim)
 		self.weights = torch.nn.Parameter(1e-4*torch.nn.init.xavier_normal_(w), requires_grad=True) #TODO verify

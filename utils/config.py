@@ -14,12 +14,12 @@ class SOMConfig(BaseConfig):
     """Configuration for SOM."""
     M: int
     N: int
-    INPUT_DATA: InputData
 
 @dataclass
 class WandBConfig(BaseConfig):
     """Configuration for WeightsAndBiases."""
     PROJECT: str
+    ENTITY: str = None
 
 @dataclass
 class LifeLongConfig(BaseConfig):

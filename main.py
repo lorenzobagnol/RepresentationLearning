@@ -16,9 +16,8 @@ from utils.config import Config, SOMConfig, PytorchBatchConfig, LifeLongConfig, 
 
 if __name__ == '__main__':
 
-	input_data = InputData((28,28), channels=1, channel_range="RGB")
-
-	runner=Runner(dataset_name="MNIST", input_data=input_data)
+	# FASHION-MNIST, MNIST, CIFAR10
+	runner=Runner(dataset_name="FASHION-MNIST")
 	
 	# vars0 = [5, 1, 0.2, 0]  # 3 different alpha values
 	vars1 = list(range(1))  # 10 different seeds
@@ -44,11 +43,11 @@ if __name__ == '__main__':
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=13,
-			som_config=SOMConfig(M=20, N=20, INPUT_DATA=input_data),
-			LifeLong_config=LifeLongConfig(SIGMA=10, TARGET_RADIUS=1.5, ALPHA=None, BETA=0.02, BATCH_SIZE=2, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=1, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE="Base"),
+			som_config=SOMConfig(M=20, N=20),
+			LifeLong_config=LifeLongConfig(SIGMA=10, TARGET_RADIUS=1.5, ALPHA=None, BETA=0.02, BATCH_SIZE=2, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=2, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.1, MODE="Base"),
 			pytorch_batch_config=PytorchBatchConfig(SIGMA=10, TARGET_RADIUS=1.5, EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01,  MODE="Base"),
-			weights_and_biases_config=WandBConfig(PROJECT="prova"),
-			variables=VARS()
+			weights_and_biases_config=WandBConfig(PROJECT="paper"),
+			variables=VARS(SEED=13)
 		)
 		runner.run(config)
 

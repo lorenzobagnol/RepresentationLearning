@@ -116,24 +116,25 @@ class STMTrainer():
 		for i in range(len(targets)):
 			if i not in targets:
 				raise Exception("Dataset labels must be consecutive starting from zero.")
+		list_labels = [i for i in range(len(targets))]
 		
 		optimizer = torch.optim.SGD(self.model.parameters(), lr = kwargs["LEARNING_RATE"])
 		
-		rep = math.ceil(len(targets)/kwargs["SUBSET_SIZE"])
-		list_labels = [i for i in range(rep)]
 		random.seed(kwargs["SEED"])
 		random.shuffle(list_labels)
 
-		target_points = TargetPoints(rep, self.device, self.model.m, self.model.n)
+		target_points = TargetPoints(len(list_labels), self.device, self.model.m, self.model.n)
 
 		stm_loss = STMLoss(self.model, self.device, mode=kwargs["MODE"], target_points=target_points)
 
-		for i in list_labels:
-			print("Training on labels in range:\t"+str(i*kwargs["SUBSET_SIZE"]) +" <= label < "+str((i+1)*kwargs["SUBSET_SIZE"]))
+		rep = math.ceil(len(targets)/kwargs["SUBSET_SIZE"])
+
+		for i in range(rep):
+			print("Training on labels in:\t"+str(list_labels[i*kwargs["SUBSET_SIZE"]:(i+1)*kwargs["SUBSET_SIZE"]]))
 			if kwargs["DISJOINT_TRAINING"]:
-				indices = torch.where((dataset_train.targets>=i*kwargs["SUBSET_SIZE"]) & (dataset_train.targets<(i+1)*kwargs["SUBSET_SIZE"]))[0].tolist()
+				indices = torch.where(torch.isin(dataset_train.targets, torch.tensor(list_labels[i*kwargs["SUBSET_SIZE"]:(i+1)*kwargs["SUBSET_SIZE"]])))[0].tolist()
 			else:
-				indices = torch.where(dataset_train.targets<(i+1)*kwargs["SUBSET_SIZE"])[0].tolist()
+				indices = torch.where(torch.isin(dataset_train.targets, torch.tensor(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])))[0].tolist()
 
 			subset_lll=torch.utils.data.Subset(dataset_train, indices)
 			print("This subset contains "+str(len(subset_lll))+" elements.")
@@ -174,7 +175,8 @@ class STMTrainer():
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
-
+				accuracy = self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])
+				print("Accuracy on the validation set is: "+str(accuracy))
 		if self.wandb_log:
 			with torch.no_grad():
 				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
@@ -241,6 +243,42 @@ class STMTrainer():
 
 		return total_distance
 	
+	def compute_accuracy(self, val_set: Dataset, batch_size: int, target_points: TargetPoints, list_labels: list =None):
+		"""
+		Compute the accuracy of the model on the validation set.
+
+		Args:
+			val_set (Dataset): The validation dataset.
+			batch_size (int): The batch size for data loading.
+			target_points: Target points for the model.
+			label (list, optional): Specific labels to compute accuracy for. Defaults to None.
+
+		Returns:
+			float: The accuracy of the model on the validation set.
+		"""
+		if list_labels is not None:
+			indices = torch.where(torch.isin(val_set.targets, torch.tensor(list_labels)))[0].tolist()
+			
+			val_set=torch.utils.data.Subset(val_set, indices)
+
+		data_loader = torch.utils.data.DataLoader(val_set,
+										batch_size=batch_size,
+										shuffle=False,
+										)
+		
+		correct_predictions = 0
+		total_samples = 0
+		for b, batch in enumerate(data_loader):
+			inputs, targets = batch[0].to(self.device), batch[1].to(self.device)
+			norm_distance_matrix = self.model(inputs)
+			bmu, bmu_loc = self.model.find_bmu(norm_distance_matrix) # batch_size
+			nearest_targets = [target_points.find_nearest_point(loc, available=False, top_k=1).label for loc in bmu_loc] 
+			nearest_targets = torch.tensor(nearest_targets)
+			correct_predictions += torch.sum(nearest_targets == targets).item()
+			total_samples += len(targets)
+
+		accuracy = correct_predictions / total_samples
+		return accuracy
 
 
 

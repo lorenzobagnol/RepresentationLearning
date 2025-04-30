@@ -1,6 +1,7 @@
 rep_env/
 MNIST/
 cifar-10-batches-py
+FashionMNIST
 __pycache__/
 *wandb/
 weights-and-losses/*

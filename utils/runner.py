@@ -16,7 +16,7 @@ from utils.config import Config, SOMConfig
 
 class Runner():
 
-	def __init__(self, dataset_name: str, input_data: InputData):
+	def __init__(self, dataset_name: str):
 		super().__init__()
 		self.dataset_name=dataset_name
 
@@ -29,7 +29,7 @@ class Runner():
 
 		assert self.training_mode in self.available_training_modes(), "Training mode should be one of "+str(self.available_training_modes())
 
-		self.dataset_train, self.dataset_val = self.create_dataset(input_data)
+		self.dataset_train, self.dataset_val = self.create_dataset(subset_size=None)
 
 
 	def parse_arguments(self):
@@ -76,12 +76,12 @@ class Runner():
 		return ["LifeLong", "pytorch_batch"]
 		
 
-	def create_dataset(self, input_data: InputData=None):
-		
-		
-		transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), input_data.transform_data]) if input_data.transform_data else torchvision.transforms.ToTensor()
+	def create_dataset(self, input_data: InputData=None, subset_size=None):
 		
 		if self.dataset_name=="MNIST":
+
+			self.input_data = InputData((28,28), channels=1, channel_range="RGB")
+			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
 			# data in .data and labels in .targets
 			MNIST_train = torchvision.datasets.MNIST(
 				root=os.path.curdir,
@@ -94,15 +94,21 @@ class Runner():
 				train=False,
 				download=True,
 				transform=transform
-			)
-			MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(10000)])
-			MNIST_train_subset.targets=MNIST_train.targets[0:10000]
-			MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(10000)])
-			MNIST_val_subset.targets=MNIST_val.targets[0:10000]		
+			)	
 
-			return MNIST_train_subset, MNIST_val_subset
+			if subset_size is not None:
+				MNIST_train_subset= torch.utils.data.dataset.Subset(MNIST_train,[i for i in range(subset_size)])
+				MNIST_train_subset.targets=MNIST_train.targets[0:subset_size]
+				MNIST_val_subset= torch.utils.data.dataset.Subset(MNIST_val,[i for i in range(subset_size)])
+				MNIST_val_subset.targets=MNIST_val.targets[0:subset_size]
+				return MNIST_train_subset, MNIST_val_subset
+			return MNIST_train, MNIST_val
+
+
 		
 		if self.dataset_name=="CIFAR10":
+			self.input_data = InputData((32,32), channels=3, channel_range="RGB")
+			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
 			# data in .data and labels in .targets
 			CIFAR_train = torchvision.datasets.CIFAR10(
 				root=os.path.curdir,
@@ -116,13 +122,38 @@ class Runner():
 				download=True,
 				transform=transform
 			)
-			CIFAR_train_subset= torch.utils.data.dataset.Subset(CIFAR_train,[i for i in range(10000)])
-			CIFAR_train_subset.targets=torch.Tensor(CIFAR_train.targets[0:10000])
-			CIFAR_val_subset= torch.utils.data.dataset.Subset(CIFAR_val,[i for i in range(10000)])
-			CIFAR_val_subset.targets=torch.Tensor(CIFAR_val.targets[0:10000])	
+			
+			if subset_size is not None:
+				CIFAR_train_subset= torch.utils.data.dataset.Subset(CIFAR_train,[i for i in range(subset_size)])
+				CIFAR_train_subset.targets=torch.Tensor(CIFAR_train.targets[0:subset_size])
+				CIFAR_val_subset= torch.utils.data.dataset.Subset(CIFAR_val,[i for i in range(subset_size)])
+				CIFAR_val_subset.targets=torch.Tensor(CIFAR_val.targets[0:subset_size])	
+				return CIFAR_train_subset, CIFAR_val_subset
+			return CIFAR_train, CIFAR_val
 
-			return CIFAR_train_subset, CIFAR_val_subset
-
+		if self.dataset_name=="FASHION-MNIST":
+			self.input_data = InputData((28,28), channels=1, channel_range="RGB")
+			transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), self.input_data.transform_data]) if self.input_data.transform_data else torchvision.transforms.ToTensor()
+			# data in .data and labels in .targets
+			FASHION_train = torchvision.datasets.FashionMNIST(
+				root=os.path.curdir,
+				train=True,
+				download=True,
+				transform=transform
+			)
+			FASHION_val = torchvision.datasets.FashionMNIST(
+				root=os.path.curdir,
+				train=False,
+				download=True,
+				transform=transform
+			)
+			if subset_size is not None:
+				FASHION_train_subset= torch.utils.data.dataset.Subset(FASHION_train,[i for i in range(subset_size)])
+				FASHION_train_subset.targets=torch.Tensor(FASHION_train.targets[0:subset_size])
+				FASHION_val_subset= torch.utils.data.dataset.Subset(FASHION_val,[i for i in range(subset_size)])
+				FASHION_val_subset.targets=torch.Tensor(FASHION_val.targets[0:subset_size])	
+				return FASHION_train_subset, FASHION_val_subset
+			return FASHION_train, FASHION_val
 
 
 	def run(self, config: Config):
@@ -133,6 +164,6 @@ class Runner():
 		random.seed(config.SEED)
 		np.random.seed(config.SEED)
 
-		self.model = SOM(config.som_config).to(self.device)
+		self.model = SOM(config.som_config, self.input_data).to(self.device)
 		self.select_training(self.model, config)
 
