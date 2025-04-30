@@ -1,5 +1,6 @@
 rep_env/
 MNIST/
+FashionMNIST/
 cifar-10-batches-py
 __pycache__/
 *wandb/
