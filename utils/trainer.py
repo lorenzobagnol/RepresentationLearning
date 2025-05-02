@@ -5,6 +5,7 @@ from tqdm import tqdm
 import wandb
 import math
 import random
+import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Literal, Sequence, Union
 
@@ -129,6 +130,10 @@ class STMTrainer():
 
 		rep = math.ceil(len(targets)/kwargs["SUBSET_SIZE"])
 
+		tasks = ["task"+str(i) for i in range(rep)]
+
+		df_accuracy = pd.DataFrame(columns=tasks+[str(kwargs["SEED"])])
+
 		for i in range(rep):
 			print("Training on labels in:\t"+str(list_labels[i*kwargs["SUBSET_SIZE"]:(i+1)*kwargs["SUBSET_SIZE"]]))
 			if kwargs["DISJOINT_TRAINING"]:
@@ -143,6 +148,8 @@ class STMTrainer():
 											shuffle=True,
 											drop_last=True
 											)
+			
+			accuracy = []
 			
 			with torch.no_grad():
 				initial_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
@@ -174,8 +181,14 @@ class STMTrainer():
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
-				accuracy = self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])
+				accuracy.append(self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
 				print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
+			# save on a dataframe the accuracy
+			df_accuracy.loc[len(df_accuracy)] = [accuracy] + [kwargs["SEED"]]
+
+		# write the accuracy on a csv file adding a line to the file
+		df_accuracy.to_csv("accuracy_results", mode='a', header=False, index=False)
+		
 		if self.wandb_log:
 			with torch.no_grad():
 				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points)
