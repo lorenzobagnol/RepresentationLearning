@@ -177,7 +177,7 @@ class STMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 				accuracy = self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])
-				print("Accuracy on the validation set is: "+str(accuracy))
+				print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
 		if self.wandb_log:
 			with torch.no_grad():
 				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
