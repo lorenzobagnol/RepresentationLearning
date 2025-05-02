@@ -149,8 +149,7 @@ class STMTrainer():
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
 				with torch.no_grad():
 					actual_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
-				scaling_factor = max(1, actual_local_error/initial_local_error)
-				lr_local = scaling_factor
+				scaling_factor = math.exp(-kwargs["BETA"]*iter_no) #max(1, actual_local_error/initial_local_error)
 				sigma_local = max(kwargs["SIGMA"]*scaling_factor, 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
@@ -172,7 +171,6 @@ class STMTrainer():
 								"loss" : loss.item(),
 							})
 
-					loss = torch.mul(lr_local, loss)
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
@@ -180,7 +178,7 @@ class STMTrainer():
 				print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
 		if self.wandb_log:
 			with torch.no_grad():
-				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points)
 				loss_nei = self.compute_errors(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
 			wandb.log({	
 				"loss_neighbourhood": loss_nei.item(),
@@ -216,7 +214,7 @@ class STMTrainer():
 		return total_distance
 	
 
-	def compute_BMU_target_distance(self, val_set: Dataset, batch_size: int, target_points, label: int =None):
+	def compute_BMU_target_distance(self, val_set: Dataset, batch_size: int, target_points: TargetPoints, label: int =None):
 
 		if label is not None:
 			indices = torch.where(val_set.targets==label)[0].tolist()
@@ -235,7 +233,7 @@ class STMTrainer():
 			bmu_distance_sq, bmu_indices = torch.min(norm_distance_matrix, 1) # batch_size
 			bmu_loc = torch.stack([self.model.locations[bmu_index,:] for bmu_index in bmu_indices]) # (batch_size, 2)
 
-			target_loc = torch.stack([target_points[int(targ)] for targ in targets]) # (batch_size, 2) 
+			target_loc = torch.stack([target_points.get_point_from_label(targ) for targ in targets]) # (batch_size, 2) 
 
 			distance_bmu_target = torch.sqrt(torch.sum(torch.pow(target_loc-bmu_loc,2),1)) # batch_size
 			total_distance+=torch.sum(distance_bmu_target)
