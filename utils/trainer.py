@@ -181,8 +181,9 @@ class STMTrainer():
 					loss.backward()
 					optimizer.step()
 					optimizer.zero_grad()
+			with torch.no_grad():	
 				accuracy.append(self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
-				print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
+			print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
 			# save on a dataframe the accuracy
 			df_accuracy.loc[len(df_accuracy)] = [accuracy] + [kwargs["SEED"]]
 
