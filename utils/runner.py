@@ -122,6 +122,9 @@ class Runner():
 				download=True,
 				transform=transform
 			)
+
+			CIFAR_train.targets = torch.Tensor(CIFAR_train.targets)
+			CIFAR_val.targets = torch.Tensor(CIFAR_val.targets)
 			
 			if subset_size is not None:
 				CIFAR_train_subset= torch.utils.data.dataset.Subset(CIFAR_train,[i for i in range(subset_size)])
