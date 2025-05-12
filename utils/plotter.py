@@ -49,10 +49,9 @@ class SOMPlotter():
 		ax.axis("off")
 
 		return fig
-	
-	def create_pil_image(self, target_points: TargetPoints=None) -> Image:
-		self.image_grid = self.create_image_grid()
-		fig = self.resize_image(self.image_grid, target_points)
+
+	def create_pil_image(self, image_grid, target_points: TargetPoints=None) -> Image:
+		fig = self.resize_image(image_grid, target_points)
 		 # Save the figure to a buffer
 		buf = io.BytesIO()
 		fig.savefig(buf, format='png', bbox_inches='tight')

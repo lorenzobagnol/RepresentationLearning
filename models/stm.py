@@ -196,7 +196,7 @@ class STMLoss:
 				self.weight_function = lambda dists, **kwargs: self.neighbourhood_batch_vieri_modified(dists, kwargs["radius"], kwargs["labels"])
 
 
-	def __call__(self, som_output: torch.Tensor, labels, sigma_local: float, target_radius: float) -> torch.Tensor:
+	def get_weighted_norms(self, som_output: torch.Tensor, labels, sigma_local: float, target_radius: float) -> torch.Tensor:
 
 		weight_function = self.weight_function(
 			dists=som_output, 
@@ -385,6 +385,162 @@ class STMLoss:
 		return tanh_weight_function
 
 	
+
+class STMEfficacyLoss(STMLoss):
+    """
+    A class to manage loss computation with efficacy modulation.
+
+    This class extends LossFactory and incorporates an efficacy mechanism
+    that adjusts the loss based on how effectively each prototype
+    represents the input data. It uses radial basis functions (RBFs)
+    and a decay mechanism to update the efficacies of prototypes over time.
+
+    Attributes:
+        efficacy_radial_sigma (float): Sigma for the radial basis function
+            used to compute efficacy.
+        efficacy_decay (float): Decay rate for updating prototype efficacies.
+        _efficacies (torch.Tensor): Efficacy values for each prototype.
+        _inefficacies (torch.Tensor): Inefficacy values for each prototype.
+    """
+
+    def __init__(
+        self,
+        efficacy_radial_sigma,
+        efficacy_decay,
+        efficacy_saturation_factor,
+        *args,
+        **kwargs,
+    ):
+        """
+        Initializes STMEfficacyLoss with efficacy parameters.
+
+        Args:
+            efficacy_radial_sigma (float): Sigma for the radial basis
+                function.
+            efficacy_decay (float): Decay rate for updating prototype
+                efficacies.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
+        super(STMEfficacyLoss, self).__init__(*args, **kwargs)
+        self.efficacy_radial_sigma = efficacy_radial_sigma
+        self.efficacy_decay = efficacy_decay
+        self.efficacy_saturation_factor = efficacy_saturation_factor
+        self._efficacies = torch.zeros(self.model.m* self.model.n)
+        self._inefficacies = 1.0 - torch.zeros((self.model.m, self.model.n))
+
+    def to(self, device):
+        """
+        Moves efficacy tensors to the specified device.
+
+        Args:
+            device (torch.device): The device to move the tensors to.
+
+        Returns:
+            self: The STMEfficacyLoss instance.
+        """
+        self._efficacies = self._efficacies.to(device)
+        self._inefficacies = self._inefficacies.to(device)
+        return self
+
+    def loss(
+        self,
+        dists,
+        neighbourhood_radius_baseline,
+        radius,
+        modulation_baseline,
+        modulation_max,
+		labels,
+        target_radius,
+    ):
+        """
+        Computes the efficacy-modulated loss.
+
+        This method calculates the loss by modulating neighborhood and
+        modulation rates based on prototype efficacies.
+
+        Args:
+            dists (torch.Tensor): Squared norms of input vectors.
+            neighbourhood_radius_baseline (float): Baseline neighborhood std value.
+            radius (float): Maximum neighborhood std value.
+            modulation_baseline (float): Baseline modulation rate.
+            modulation_max (float): Maximum modulation rate.
+            anchors (torch.Tensor): Anchors for loss calculation. 
+            target_radius (torch.Tensor): Neighborhood std for anchors.
+
+        Returns:
+            torch.Tensor: The mean efficacy-modulated loss.
+        """
+        # Find the Best Matching Unit (BMU) for each input vector
+        bmu, bmu_loc = self.model.find_bmu(dists)
+
+        with torch.no_grad():
+            # Create a mask identifying the BMU for each vector in the batch
+            batch_size = len(dists)
+            mask = torch.zeros_like(dists)
+            mask[torch.arange(batch_size), self.model.get_locations_from_grid_points(bmu_loc)] = 1
+
+            # Compute radial basis functions (RBFs) from squared norms,
+            # centered at zero. Only BMUs' RBFs are considered.
+            norm_radial_bases = (
+                torch.exp(
+                    -0.5 * (self.efficacy_radial_sigma**-2) * dists
+                )  # Apply RBF formula.
+                * mask
+            )  # Mask non-BMU prototypes
+
+            # Compute the mean RBF activation for each unit based on BMUs.
+            mask_props = (mask > 0).sum(0).float()  # Count BMUs for each unit
+            mask_props[mask_props == 0] = 1e-5  # Avoid division by zero
+            norm_radial_bases = (
+                norm_radial_bases * (mask / mask_props.reshape(1, -1))
+            ).sum(
+                0
+            )  # Normalize and average
+
+            # Update prototype efficacies as leakies of mean RBFs of BMUs.
+            # Update only for units where there are BMUs in that batch
+            mask_radials = norm_radial_bases != 0
+            self._efficacies = (
+                self._efficacies
+                + self.efficacy_decay
+                * (norm_radial_bases - self._efficacies)
+                * mask_radials
+            )
+
+            # use tanh to saturate inefficacies
+            self._inefficacies = 1.0 - torch.tanh(
+                self.efficacy_saturation_factor * self._efficacies
+            )
+
+            # Reshape inefficacies to match batch size.
+            # Each item has one inefficiency value.
+            episode_inefficacies = (
+                mask @ self._inefficacies.flatten()
+            ).reshape(-1, 1)
+
+            _neighborhood_std = (
+                neighbourhood_radius_baseline
+                + episode_inefficacies
+                * (radius - neighbourhood_radius_baseline)
+            )
+
+            _modulation_rate = modulation_baseline + episode_inefficacies * (
+                modulation_max - modulation_baseline
+            )
+
+        losses = self.get_weighted_norms(
+            dists,
+			labels,
+            _neighborhood_std,
+            target_radius,
+        )
+
+        _loss = losses * _modulation_rate
+
+        return _loss.mean()
+
+
 
 
 		
