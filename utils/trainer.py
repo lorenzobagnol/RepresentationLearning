@@ -11,7 +11,7 @@ from typing import Literal, Sequence, Union
 
 from utils.plotter import SOMPlotter
 from models.som import SOM
-from models.stm import TargetPoints, STMLoss
+from models.stm import STMEfficacyLoss, TargetPoints, STMLoss
 
 class STMTrainer():
 	
@@ -126,12 +126,42 @@ class STMTrainer():
 
 		target_points = TargetPoints(len(list_labels), self.device, self.model.m, self.model.n)
 
-		stm_loss = STMLoss(self.model, self.device, mode=kwargs["MODE"], target_points=target_points)
+		# Define hyperparameters
+		efficacy_radial_sigma = 10
+		efficacy_decay = 0.005
+		efficacy_saturation_factor = 2.5
+		# stm_loss = STMLoss(self.model, self.device, mode=kwargs["MODE"], target_points=target_points)
+		stm_loss = STMEfficacyLoss(
+								model=self.model,
+								device=self.device,
+								mode="Base",
+								target_points=target_points,
+								efficacy_radial_sigma=efficacy_radial_sigma,
+								efficacy_decay=efficacy_decay,
+								efficacy_saturation_factor=efficacy_saturation_factor,
+							)
 
 		rep = math.ceil(len(targets)/kwargs["SUBSET_SIZE"])
 
 		tasks = ["task"+str(i) for i in range(rep)]
 
+
+
+
+		# Define hyperparameters
+		learning_rate = 0.001
+		batch_size = 64
+		epochs = 100
+		input_dim = 784
+		latent_dim = 20 * 20
+		anchor_sigma = 1.2
+		neigh_sigma_max = 40
+		neigh_sigma_base = 0.7
+		lr_max = 2
+		lr_base = 0.001
+		efficacy_radial_sigma = 10
+		efficacy_decay = 0.005
+		efficacy_saturation_factor = 2.5
 
 		accuracy = []
 		for i in range(rep):
@@ -150,17 +180,22 @@ class STMTrainer():
 											)
 			
 			
-			with torch.no_grad():
-				initial_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 			for iter_no in tqdm(range(kwargs["EPOCHS_PER_SUBSET"]), desc=f"Epochs", leave=True, position=0):
-				with torch.no_grad():
-					actual_local_error = self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
 				scaling_factor = math.exp(-kwargs["BETA"]*iter_no) #max(1, actual_local_error/initial_local_error)
 				sigma_local = max(kwargs["SIGMA"]*scaling_factor, 0.7)
 				for b, batch in enumerate(data_loader):
 					inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
 					norm_distance_matrix = self.model(inputs)
-					loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["TARGET_RADIUS"])
+					loss = stm_loss.loss(
+												norm_distance_matrix,
+												neighbourhood_radius_baseline=0.7,
+												radius=20,
+												modulation_baseline=lr_base,
+												modulation_max=lr_max,
+												labels=labels,
+												target_radius=kwargs["TARGET_RADIUS"],
+											)
+					#loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["TARGET_RADIUS"])
 					
 					if b==len(data_loader)-1 and self.wandb_log:
 						if iter_no==kwargs["EPOCHS_PER_SUBSET"]-1:
