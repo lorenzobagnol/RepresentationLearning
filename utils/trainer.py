@@ -71,9 +71,9 @@ class STMTrainer():
 				loss = stm_loss(norm_distance_matrix, labels, sigma_local=sigma_local, target_radius=kwargs["TARGET_RADIUS"])
 
 				if b==len(data_loader)-1 and self.wandb_log:
-					weights_grid = plotter.create_image_grid(target_points)
+					weights_grid = plotter.create_image_grid()
 					wandb.log({	
-						"weights": wandb.Image(plotter.create_pil_image(weights_grid)),
+						"weights": wandb.Image(plotter.create_pil_image(weights_grid, target_points)),
 						"loss" : loss.item()
 					})
 
@@ -201,9 +201,10 @@ class STMTrainer():
 						if iter_no==kwargs["EPOCHS_PER_SUBSET"]-1:
 							with torch.no_grad():
 								local_error=self.compute_errors(val_set=dataset_val, label=i, batch_size=kwargs["BATCH_SIZE"])
-							weights_grid = plotter.create_image_grid(target_points)
+							weights_grid = plotter.create_image_grid()
 							wandb.log({	
-								"weights": wandb.Image(plotter.create_pil_image(weights_grid)),
+								"weights": wandb.Image(plotter.create_pil_image(weights_grid, target_points)),
+								"efficacies": wandb.Image(plotter.create_pil_image(stm_loss._efficacies.cpu().detach().numpy().reshape(self.model.n, self.model.m))),
 								"loss" : loss.item(),
 								"competence" : local_error.item(),
 							})
