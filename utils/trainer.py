@@ -8,6 +8,7 @@ import random
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Literal, Sequence, Union
+import kmeans_pytorch
 
 from utils.plotter import SOMPlotter
 from models.som import SOM
@@ -204,7 +205,7 @@ class STMTrainer():
 							weights_grid = plotter.create_image_grid()
 							wandb.log({	
 								"weights": wandb.Image(plotter.create_pil_image(weights_grid, target_points)),
-								"efficacies": wandb.Image(plotter.create_pil_image(stm_loss._efficacies.cpu().detach().numpy().reshape(self.model.n, self.model.m))),
+								"efficacies": wandb.Image(plotter.create_pil_image(stm_loss._efficacies.cpu().detach().numpy().reshape(self.model.m, self.model.n))),
 								"loss" : loss.item(),
 								"competence" : local_error.item(),
 							})
@@ -217,7 +218,9 @@ class STMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 			with torch.no_grad():	
-				accuracy.append(self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
+				anchor_groups = self.get_anchor_groups(target_points, n_cluster=len(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
+				
+				accuracy.append(self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], anchor_groups=anchor_groups, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
 			print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
 		
 		df_accuracy = pd.DataFrame(columns=tasks+[str(kwargs["SEED"])])
@@ -231,10 +234,12 @@ class STMTrainer():
 			with torch.no_grad():
 				bmu_target_distance = self.compute_BMU_target_distance(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], target_points=target_points)
 				loss_nei = self.compute_errors(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"])
+
 			wandb.log({	
 				"loss_neighbourhood": loss_nei.item(),
 				"distance_BMU_target": bmu_target_distance.item(),
 			})
+
 
 		if wandb.run is not None:
 			wandb.finish()
@@ -293,7 +298,7 @@ class STMTrainer():
 
 		return total_distance
 	
-	def compute_accuracy(self, val_set: Dataset, batch_size: int, target_points: TargetPoints, list_labels: list =None):
+	def compute_accuracy(self, val_set: Dataset, batch_size:int, anchor_groups: torch.Tensor, list_labels: list =None):
 		"""
 		Compute the accuracy of the model on the validation set.
 
@@ -322,15 +327,61 @@ class STMTrainer():
 			inputs, targets = batch[0].to(self.device), batch[1].detach().cpu()
 			norm_distance_matrix = self.model(inputs)
 			bmu, bmu_loc = self.model.find_bmu(norm_distance_matrix) # batch_size
-			nearest_targets = [target_points.find_nearest_point(loc, available=False, top_k=1).label for loc in bmu_loc] 
-			nearest_targets = torch.tensor(nearest_targets)
-			correct_predictions += torch.sum(nearest_targets == targets).item()
+			predictions = anchor_groups[bmu_loc[:, 0].long(), bmu_loc[:, 1].long()] # batch_size
+			correct_predictions += torch.sum(predictions == targets).item()
 			total_samples += len(targets)
 
 		accuracy = correct_predictions / total_samples
 		return accuracy
 
 
+	def get_anchor_groups(self, target_points: TargetPoints):
+			"""Assigns each weight vector to an anchor group using k-means.
 
+			Args:
+				anchors (torch.Tensor): Anchor points tensor.
+
+			Returns:
+				torch.Tensor: Anchor group assignments for each weight vector.
+			"""
+
+			anchors = torch.stack([point.value for point in target_points.points])
+			cluster_ids, cluster_centers = kmeans_pytorch.kmeans(
+				X=self.model.weights.T,
+				num_clusters=len(anchors),
+				distance="euclidean",
+				device=self.model.device,
+			)
+
+			side_length = self.model.radial.side
+			side_indices = torch.arange(side_length)
+			# Stack the indices and cluster IDs
+			coordinate_cluster_ids = torch.cat([self.model.locations, cluster_ids.unsqueeze(1)], dim=1)
+
+			# Calculate the mean coordinate for each cluster
+			cluster_means = torch.stack(
+				[
+					coordinate_cluster_ids[coordinate_cluster_ids[:, 2] == x]
+					.float()
+					.mean(0)
+					for x in range(len(anchors))
+				]
+			)
+
+			# Assign each cluster to the nearest anchor
+			cluster_to_anchor = (
+				torch.norm(
+					anchors.cpu().reshape(-1, 1, 2)
+					- cluster_means[:, :2].reshape(1, -1, 2),
+					dim=-1,
+				)
+				.min(0)
+				.indices
+			)
+
+			# Assign each weight vector to the anchor group of its cluster
+			anchor_groups = cluster_to_anchor[coordinate_cluster_ids[:, 2]]
+
+			return anchor_groups
 
 
