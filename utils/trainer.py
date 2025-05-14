@@ -327,7 +327,8 @@ class STMTrainer():
 			inputs, targets = batch[0].to(self.device), batch[1].detach().cpu()
 			norm_distance_matrix = self.model(inputs)
 			bmu, bmu_loc = self.model.find_bmu(norm_distance_matrix) # batch_size
-			predictions = anchor_groups[bmu_loc[:, 0].long(), bmu_loc[:, 1].long()] # batch_size
+			bmu_loc_index = torch.tensor([self.model.locations.tolist().index(bmu.tolist()) for bmu in bmu_loc])
+			predictions = anchor_groups[bmu_loc_index] # batch_size
 			correct_predictions += torch.sum(predictions == targets).item()
 			total_samples += len(targets)
 
@@ -335,7 +336,7 @@ class STMTrainer():
 		return accuracy
 
 
-	def get_anchor_groups(self, target_points: TargetPoints):
+	def get_anchor_groups(self, target_points: TargetPoints, n_cluster: int):
 			"""Assigns each weight vector to an anchor group using k-means.
 
 			Args:
@@ -347,13 +348,13 @@ class STMTrainer():
 
 			anchors = torch.stack([point.value for point in target_points.points])
 			cluster_ids, cluster_centers = kmeans_pytorch.kmeans(
-				X=self.model.weights.T,
-				num_clusters=len(anchors),
+				X=self.model.weights,
+				num_clusters=n_cluster,
 				distance="euclidean",
 				device=self.model.device,
 			)
 
-			side_length = self.model.radial.side
+			side_length = self.model.m * self.model.n
 			side_indices = torch.arange(side_length)
 			# Stack the indices and cluster IDs
 			coordinate_cluster_ids = torch.cat([self.model.locations, cluster_ids.unsqueeze(1)], dim=1)
