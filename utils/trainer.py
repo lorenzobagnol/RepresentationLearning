@@ -346,7 +346,6 @@ class STMTrainer():
 				torch.Tensor: Anchor group assignments for each weight vector.
 			"""
 
-			anchors = torch.stack([point.value for point in target_points.points])
 			cluster_ids, cluster_centers = kmeans_pytorch.kmeans(
 				X=self.model.weights,
 				num_clusters=n_cluster,
@@ -365,11 +364,12 @@ class STMTrainer():
 					coordinate_cluster_ids[coordinate_cluster_ids[:, 2] == x]
 					.float()
 					.mean(0)
-					for x in range(len(anchors))
+					for x in range(n_cluster)
 				]
 			)
 
 			# Assign each cluster to the nearest anchor
+			anchors = torch.stack([point.value for point in target_points.points])
 			cluster_to_anchor = (
 				torch.norm(
 					anchors.cpu().reshape(-1, 1, 2)
