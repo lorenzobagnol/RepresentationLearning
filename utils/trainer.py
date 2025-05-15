@@ -356,7 +356,7 @@ class STMTrainer():
 			side_length = self.model.m * self.model.n
 			side_indices = torch.arange(side_length)
 			# Stack the indices and cluster IDs
-			coordinate_cluster_ids = torch.cat([self.model.locations, cluster_ids.unsqueeze(1)], dim=1)
+			coordinate_cluster_ids = torch.cat([self.model.locations.cpu(), cluster_ids.unsqueeze(1)], dim=1)
 
 			# Calculate the mean coordinate for each cluster
 			cluster_means = torch.stack(
