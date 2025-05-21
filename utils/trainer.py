@@ -159,7 +159,7 @@ class STMTrainer():
 		neigh_sigma_max = 40
 		neigh_sigma_base = 0.7
 		lr_max = 2
-		lr_base = 0.001
+		lr_base = 0.1
 		efficacy_radial_sigma = 10
 		efficacy_decay = 0.005
 		efficacy_saturation_factor = 2.5
@@ -379,23 +379,32 @@ class STMTrainer():
 			)
 
 			# Assign each cluster to the nearest anchor
-			anchors = torch.stack([point.value for point in target_points.points])
-			cluster_to_anchor = (
-				torch.norm(
-					anchors.cpu().reshape(-1, 1, 2)
-					- cluster_means[:, :2].reshape(1, -1, 2),
-					dim=-1,
-				)
-				.min(0)
-				.indices
-			)
+			anchors = torch.stack([torch.cat((point.value, torch.tensor([point.label])), 0) for point in target_points.points])
+			cluster_coords = cluster_means[:, :2]
+			anchor_coords = anchors[:, :2]
+
+			# Extract values (third dimension)
+			anchor_values = anchors[:, 2]
+
+			# Calculate distances between each cluster and each anchor
+			distances = torch.zeros(len(cluster_means), len(anchors))
+			for i, cluster in enumerate(cluster_coords):
+				for j, anchor in enumerate(anchor_coords):
+					# Euclidean distance between cluster and anchor coordinates
+					distances[i, j] = torch.sqrt(torch.sum((cluster - anchor) ** 2))
+
+			# Find index of nearest anchor for each cluster
+			nearest_anchor_indices = torch.argmin(distances, dim=1)
+
+			# Get the values of the nearest anchors for each cluster
+			nearest_anchor_values = anchor_values[nearest_anchor_indices]
 
 			all_cluster_ids = torch.full_like(mask, fill_value=-1, dtype=torch.int32).cpu()
 			all_cluster_ids[mask.bool()] = cluster_ids.int()
 
 			valid_indices = all_cluster_ids != -1
 			anchor_groups = torch.ones(valid_indices.shape)*-1
-			anchor_groups[valid_indices] = cluster_to_anchor[all_cluster_ids[valid_indices]].float()
+			anchor_groups[valid_indices] = nearest_anchor_values[all_cluster_ids[valid_indices]].float()
 
 			return anchor_groups
 
