@@ -426,8 +426,8 @@ class STMEfficacyLoss(STMLoss):
         self.efficacy_radial_sigma = efficacy_radial_sigma
         self.efficacy_decay = efficacy_decay
         self.efficacy_saturation_factor = efficacy_saturation_factor
-        self._efficacies = torch.zeros(self.model.m* self.model.n).to(self.device)
-        self._inefficacies = 1.0 - torch.zeros((self.model.m, self.model.n)).to(self.device)
+        self._efficacies = torch.zeros(self.model.m* self.model.n).to(self.device) # (m*n,)
+        self._inefficacies = 1.0 - torch.zeros((self.model.m, self.model.n)).to(self.device) 	# (m*n,)
 
     def loss(
         self,

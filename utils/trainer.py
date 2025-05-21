@@ -336,7 +336,7 @@ class STMTrainer():
 		return accuracy
 
 
-	def get_anchor_groups(self, target_points: TargetPoints, n_cluster: int):
+	def get_anchor_groups(self, target_points: TargetPoints, efficacies: torch.Tensor, n_cluster: int):
 			"""Assigns each weight vector to an anchor group using k-means.
 
 			Args:
@@ -346,17 +346,23 @@ class STMTrainer():
 				torch.Tensor: Anchor group assignments for each weight vector.
 			"""
 
+			# Consider weight vectors with efficacy > tredshold
+			mask = efficacies > 0.5
+			# Filter the weight vectors based on the mask
+			weight_vectors = self.model.weights[mask]
+			# Filter the locations based on the mask
+			locations = self.model.locations[mask]
+
+			# Perform k-means clustering on the weight vectors
 			cluster_ids, cluster_centers = kmeans_pytorch.kmeans(
-				X=self.model.weights,
+				X=weight_vectors,
 				num_clusters=n_cluster,
 				distance="euclidean",
 				device=self.model.device,
 			)
 
-			side_length = self.model.m * self.model.n
-			side_indices = torch.arange(side_length)
 			# Stack the indices and cluster IDs
-			coordinate_cluster_ids = torch.cat([self.model.locations.cpu(), cluster_ids.unsqueeze(1)], dim=1)
+			coordinate_cluster_ids = torch.cat([locations.cpu(), cluster_ids.unsqueeze(1)], dim=1)
 
 			# Calculate the mean coordinate for each cluster
 			cluster_means = torch.stack(
@@ -380,8 +386,12 @@ class STMTrainer():
 				.indices
 			)
 
-			# Assign each weight vector to the anchor group of its cluster
-			anchor_groups = cluster_to_anchor[coordinate_cluster_ids[:, 2]]
+			all_cluster_ids = torch.full_like(mask, fill_value=-1, dtype=torch.int32)
+			all_cluster_ids[mask.bool()] = cluster_ids.int()
+
+			valid_indices = all_cluster_ids != -1
+			anchor_groups = torch.ones(valid_indices.shape)*-1
+			anchor_groups[valid_indices] = cluster_to_anchor[all_cluster_ids[valid_indices]].float()
 
 			return anchor_groups
 

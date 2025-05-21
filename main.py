@@ -43,8 +43,8 @@ if __name__ == '__main__':
 		# Creating a specific config with varying parameters for alpha and var2
 		config = Config(
 			SEED=var1,
-			som_config=SOMConfig(M=20, N=20),
-			LifeLong_config=LifeLongConfig(SIGMA=10, TARGET_RADIUS=1.5, ALPHA=None, BETA=0.1, BATCH_SIZE=64, EPOCHS_PER_SUBSET=50, SUBSET_SIZE=2, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.001, MODE="Base"),
+			som_config=SOMConfig(M=3, N=4),
+			LifeLong_config=LifeLongConfig(SIGMA=10, TARGET_RADIUS=1.5, ALPHA=None, BETA=0.1, BATCH_SIZE=64, EPOCHS_PER_SUBSET=2, SUBSET_SIZE=2, DISJOINT_TRAINING=True, LR_GLOBAL_BASELINE=0.1, SIGMA_BASELINE=1.5, LEARNING_RATE=0.001, MODE="Base"),
 			pytorch_batch_config=PytorchBatchConfig(SIGMA=10, TARGET_RADIUS=1.5, EPOCHS=200, BATCH_SIZE=20, LEARNING_RATE=0.001, BETA=0.01,  MODE="Base"),
 			weights_and_biases_config=WandBConfig(PROJECT="paper"),
 			variables=VARS(SEED=var1)
