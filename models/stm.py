@@ -95,6 +95,7 @@ class TargetPoints:
 					[0.83, 0.83],
 				]
 			)
+		points = points[:self.num_points]
 		points_list=np.int32(points*min(self.M, self.N)).tolist()
 		if self.seed is not None:
 			random.seed(self.seed)
