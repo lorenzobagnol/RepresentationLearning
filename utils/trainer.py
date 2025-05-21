@@ -379,7 +379,7 @@ class STMTrainer():
 			)
 
 			# Assign each cluster to the nearest anchor
-			anchors = torch.stack([torch.cat((point.value, torch.tensor([point.label])), 0) for point in target_points.points])
+			anchors = torch.stack([torch.cat((point.value.cpu(), torch.tensor([point.label]).cpu()), 0) for point in target_points.points])
 			cluster_coords = cluster_means[:, :2]
 			anchor_coords = anchors[:, :2]
 
