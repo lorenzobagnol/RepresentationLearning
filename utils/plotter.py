@@ -27,7 +27,7 @@ class SOMPlotter():
 			numpy array: heigh*width*channels array representing the image grid.
 		"""
 		weights = self.model.get_weights().cpu()
-		image_grid=torch.cat([torch.cat([self.model.input_data.inverse_transform_data(weights[i+(j*self.model.n)]) for i in range(self.model.n)], 0) for j in range(self.model.m)], 1)
+		image_grid=torch.cat([torch.cat([self.model.input_data.inverse_transform_data(weights[i+(j*self.model.n)]) for i in range(self.model.n)], 1) for j in range(self.model.m)], 0)
 		if self.clip_image:
 			return np.clip(image_grid, 0, 1)
 		return np.array(image_grid)
