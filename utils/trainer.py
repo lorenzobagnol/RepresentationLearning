@@ -390,7 +390,7 @@ class STMTrainer():
 				.indices
 			)
 
-			all_cluster_ids = torch.full_like(mask, fill_value=-1, dtype=torch.int32)
+			all_cluster_ids = torch.full_like(mask, fill_value=-1, dtype=torch.int32).cpu()
 			all_cluster_ids[mask.bool()] = cluster_ids.int()
 
 			valid_indices = all_cluster_ids != -1
