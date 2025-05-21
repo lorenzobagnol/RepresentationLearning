@@ -218,8 +218,12 @@ class STMTrainer():
 					optimizer.step()
 					optimizer.zero_grad()
 			with torch.no_grad():	
-				anchor_groups = self.get_anchor_groups(target_points, n_cluster=len(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
-				
+				anchor_groups = self.get_anchor_groups(target_points, stm_loss._efficacies, n_cluster=len(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
+				if self.wandb_log:
+					cluster_pil = plotter.create_pil_image(anchor_groups.reshape(self.model.m, self.model.n))
+					wandb.log({	
+						"anchor_groups": wandb.Image(cluster_pil),
+					})
 				accuracy.append(self.compute_accuracy(val_set=dataset_val, batch_size=kwargs["BATCH_SIZE"], anchor_groups=anchor_groups, list_labels=list_labels[:(i+1)*kwargs["SUBSET_SIZE"]]))
 			print("Accuracy on the validation set "+str(list_labels[:(i+1)*kwargs["SUBSET_SIZE"]])+" is: "+str(accuracy))
 		
