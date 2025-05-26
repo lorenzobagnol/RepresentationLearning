@@ -205,8 +205,8 @@ class STMLoss:
 			radius=sigma_local,
 			target_radius=target_radius
 			)	
-		loss = torch.mul(1/2,torch.sum(torch.mul(weight_function, som_output)))
-		return loss
+		losses = 0.5 * weight_function * som_output # TODO verify with torch.mean instead of torch.mul
+		return losses
 		
 	def target_distance_batch(self, labels, radius: float) -> torch.Tensor:
 		"""
